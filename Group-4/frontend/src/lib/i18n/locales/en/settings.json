@@ -1,0 +1,36 @@
+{
+  "title": "Settings",
+  "account": {
+    "heading": "Account"
+  },
+  "language": {
+    "heading": "Language",
+    "description": "Choose the language for the interface and for newly generated interview/report content.",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "theme": {
+    "heading": "Appearance",
+    "description": "Choose whether the interface uses the light or dark theme. Your choice is remembered in this browser.",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "deleteAccount": {
+    "heading": "Delete account",
+    "description": "Your account is permanently deleted along with your interviews, pre-assessments and reports. This cannot be undone.",
+    "trigger": "Delete my account",
+    "dialogTitle": "You are about to permanently delete your account",
+    "dialogDescription": "Your account and all interview/pre-assessment records will be removed from the database. This cannot be undone and you will not be able to sign in with the same credentials again.",
+    "passwordLabel": "Enter your password to confirm",
+    "confirmLabel": "I understand this action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Permanently delete my account",
+    "deleting": "Deleting…",
+    "errors": {
+      "invalidPassword": "Incorrect password.",
+      "notConfirmed": "Tick the confirmation box to continue.",
+      "forbidden": "Administrator accounts cannot be deleted from this screen.",
+      "generic": "The account could not be deleted. Please try again."
+    }
+  }
+}

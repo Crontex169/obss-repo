@@ -1,0 +1,20 @@
+{
+  "welcome": "Welcome aboard!",
+  "cta": "Ready to start practising for your interview?",
+  "intro": "Before you begin, please confirm the two documents below. Click a document name to read its full text.",
+  "rows": {
+    "kvkk": {
+      "prefix": "I have read and understood the ",
+      "link": "Personal Data Protection Notice",
+      "suffix": "."
+    },
+    "terms": {
+      "prefix": "I have read and accept the ",
+      "link": "Terms of Use and Privacy Policy",
+      "suffix": "."
+    }
+  },
+  "accept": "Accept and continue",
+  "accepting": "Saving...",
+  "error": "Your consent could not be saved. Please try again."
+}

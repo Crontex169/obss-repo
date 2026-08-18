@@ -1,0 +1,187 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap");
+@import "tailwindcss";
+
+/* shadcn/ui köprü token'ları (components/ui/*). O bileşenler `bg-background`,
+   `text-muted-foreground` gibi shadcn adlarını kullanıyor; bu adlar Tailwind
+   temasında TANIMLI DEĞİLDİ, dolayısıyla sınıflar hiç üretilmiyordu (ör.
+   AlertDialog paneli zeminsiz kalıyordu). Burada shadcn adları projenin kendi
+   tasarım token'larına bağlanır — böylece koyu temada da tek kaynaktan
+   beslenirler. `accent`/`border` adları BİLİNÇLİ OLARAK dışarıda bırakıldı:
+   ikisi de :root'taki tasarım token'larıyla ad çakışması yaratır. */
+/* --color-border tasarim token'i olarak zaten vardi; buraya (inline OLMAYAN
+   bloga) tasinmasinin tek sebebi Tailwind'in `border-border` / `stroke-border`
+   yardimcilarini uretebilmesi — shadcn chart.tsx recharts izgarasini bu sinifla
+   boyuyor. Deger tek yerde durur, koyu tema :root[data-theme] ile ezer. */
+@theme {
+  --color-border: #e5e7eb;
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-text);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-text);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-on-accent);
+  --color-secondary: var(--color-bg-muted);
+  --color-secondary-foreground: var(--color-text);
+  --color-muted: var(--color-bg-muted);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-destructive: var(--color-danger);
+  --color-input: var(--color-surface);
+  --color-ring: var(--color-accent);
+}
+
+/* Tasarım token sistemi (2026-08-03 revizyonu — frontend-design skill).
+   OBSS'in beyaz zemin + güvenilir mavi kurumsal kimliğini, getdevinterview.com
+   referansındaki koyu/net "premium SaaS" hissiyle birleştirir: fonksiyonel
+   ekranlar (form, liste, oturum) aydınlık ve pratik; hero/karşılama alanları
+   koyu lacivert. İmza öğesi: skorlar/sayaçlar/tarihler JetBrains Mono ile
+   "terminal verisi" gibi okunur — "geliştirici mülakatı" alanına özgü bir
+   referans, süs değil. */
+:root {
+  color-scheme: light;
+
+  /* Yüzeyler — 007-ui-design/v2.pen auth ekranlarindaki degerler:
+     ekran zemini = input zemini = #F8FAFC, kart = #FFFFFF, cizgi = #E5E7EB. */
+  --color-bg: #f8fafc;
+  --color-bg-muted: #f3f4f6;
+  --color-surface: #ffffff;
+  /* --color-border yukaridaki @theme blogunda tanimli (Tailwind yardimcilari icin),
+     deger 007-ui-design/v2.pen auth ekranlarindaki #e5e7eb'e guncellendi. */
+
+  /* Koyu hero/karşılama yüzeyleri */
+  --color-bg-dark: #0b1220;
+  --color-surface-dark: #121b30;
+  --color-border-dark: #26314d;
+
+  /* Metin */
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-text-inverse: #f4f6fb;
+  --color-text-muted-inverse: #94a1c2;
+
+  /* OBSS mavisi — tek imza vurgu rengi (007-ui-design K4).
+     accent: dolgu ve baglanti rengi (v2.pen "Login Submit Btn" #00A3E0).
+     accent-strong: beyaz metinli DOLGU icin. #00A3E0 uzerinde beyaz 2.87:1 ile
+     WCAG AA'yi (4.5:1) gecemiyor; #0077A3 uzerinde 5.03:1 (K5). Bu yuzden
+     butonlarda zemin accent-strong, ince baglantilarda accent kullanilir. */
+  --color-accent: #00a3e0;
+  --color-accent-strong: #0077a3;
+  --color-accent-soft: #e6f6fd;
+  /* Vurgu zeminine BASILAN metin/ikon rengi. Açık temada beyaz; koyu temada
+     vurgu rengi aydınlanmak zorunda olduğu için (koyu zeminde okunabilirlik)
+     beyaz metin kontrastı düşer — bu token o iki ihtiyacı ayırır. */
+  --color-on-accent: #ffffff;
+
+  /* Admin paneli vurgusu (005-admin FR-015) — aynı yerleşim, FARKLI vurgu
+     rengi. Kullanıcı paneli OBSS lacivert mavisini kullandığı için admin'e
+     ayırt edilebilir bir açık mavi/camgöbeği ton verilir (docs/APP_FLOW.md §5
+     "beyaz arkaplan + açık mavi vurgu" kararı; 2026-08-04 analizinde tek accent
+     token'ının FR-015'i karşılamadığı tespit edildi). */
+  --color-admin-accent: #0e7490;
+  --color-admin-accent-strong: #155e75;
+  --color-admin-accent-soft: #e0f2fe;
+
+  /* Durum renkleri (rozet/skor) */
+  --color-success: #16a34a;
+  --color-success-soft: #eafaf0;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fdecec;
+  --color-warning: #d97706;
+  --color-warning-soft: #fef3e0;
+
+  /* Yazı tipleri */
+  --font-display: "Manrope", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Koyu tema (Ayarlar > Görünüm). Tercih localStorage'da tutulur ve
+   <html data-theme="dark"> olarak uygulanır (bkz. lib/theme/index.ts).
+   Bileşenler DEĞİŞMEZ — hepsi zaten token okuduğu için tek blok yeterli.
+
+   Koyu zemin, hero/karşılama alanlarının zaten kullandığı lacivertten türetilir
+   (--color-bg-dark ailesi); böylece hero'lar iki temada da AYNI görünür ve
+   koyu temada sayfanın geri kalanıyla aynı dilde konuşur. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0b1220;
+  --color-bg-muted: #141d33;
+  --color-surface: #121b30;
+  --color-border: #26314d;
+
+  --color-text: #e7ecf7;
+  --color-text-muted: #9aa6c4;
+
+  /* Vurgu koyu zeminde okunabilmek için AÇILIR; buna karşılık vurgu zeminine
+     basılan metin lacivert olur (--color-on-accent). Böylece hem
+     "bg-accent + on-accent" butonu hem "accent-soft + accent" rozeti AA'yı
+     geçer — tek bir renkle ikisi birden sağlanamıyor. */
+  --color-accent: #7aa2ff;
+  --color-accent-strong: #a5c0ff;
+  --color-accent-soft: #1c2a4d;
+  --color-on-accent: #0b1220;
+
+  /* FR-015: admin paneli koyu temada da kullanıcı panelinden ayrışır —
+     periwinkle mavi (kullanıcı) vs. camgöbeği (admin). */
+  --color-admin-accent: #22d3ee;
+  --color-admin-accent-strong: #67e8f9;
+  --color-admin-accent-soft: #0d3a45;
+
+  /* Durum renkleri: yeşil/kırmızı/turuncu ayrımı korunur, yalnızca koyu zemine
+     göre parlaklık takas edilir (metin tonu açılır, "soft" zemin koyulaşır). */
+  --color-success: #4ade80;
+  --color-success-soft: #123324;
+  --color-danger: #fb7185;
+  --color-danger-soft: #3b1420;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #3a2a0d;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-data {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Tailwind v4 preflight `button`a `cursor: default` veriyor (v3'te pointer'di) —
+   bu yuzden butonlar tiklanabilir hissettirmiyordu. Tek yerden geri alinir,
+   her butona `cursor-pointer` sinifi eklemeye gerek yok. Devre disi butonlar
+   disarida: onlarin imleci `disabled:cursor-not-allowed` ile veriliyor.
+   Kutucugun KENDISI de listede: `cursor` kalitilan bir ozellik olsa da
+   input'un tarayici varsayilani (`default`) etiketten gelen degeri eziyor,
+   yani yalnizca etiketi hedeflemek kutunun uzerinde ise yaramiyor. */
+button:not(:disabled),
+[role='button'],
+input[type='checkbox']:not(:disabled),
+input[type='radio']:not(:disabled),
+label:has(input[type='checkbox']),
+label:has(input[type='radio']),
+summary {
+  cursor: pointer;
+}

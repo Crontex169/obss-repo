@@ -1,0 +1,20 @@
+{
+  "welcome": "Aramıza hoş geldin!",
+  "cta": "Mülakat pratiğine başlamaya hazır mısın?",
+  "intro": "Başlamadan önce aşağıdaki iki belgeyi onaylaman gerekiyor. Belge adına tıklayarak tam metni okuyabilirsin.",
+  "rows": {
+    "kvkk": {
+      "prefix": "",
+      "link": "KVKK Aydınlatma Metni",
+      "suffix": "'ni okudum ve anladım."
+    },
+    "terms": {
+      "prefix": "",
+      "link": "Kullanım Şartları ve Gizlilik Politikası",
+      "suffix": "'nı okudum, kabul ediyorum."
+    }
+  },
+  "accept": "Kabul et ve başla",
+  "accepting": "Kaydediliyor...",
+  "error": "Onay kaydedilemedi. Lütfen tekrar deneyin."
+}

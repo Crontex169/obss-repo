@@ -1,0 +1,11 @@
+{
+  "goToAdminPanel": "Go to admin panel",
+  "badge": "Admin",
+  "nav": {
+    "interviews": "Interviews",
+    "reports": "Reports",
+    "stats": "Statistics"
+  },
+  "readOnlyNotice": "Read-only view",
+  "signOut": "Sign out"
+}

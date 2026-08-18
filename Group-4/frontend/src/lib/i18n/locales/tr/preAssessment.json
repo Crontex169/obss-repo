@@ -1,0 +1,167 @@
+{
+  "list": {
+    "heading": "Ön Değerlendirmelerim",
+    "subheading": "Tüm ön değerlendirmelerin, en yeniden eskiye sıralı.",
+    "newButton": "Yeni değerlendirme",
+    "loading": "Yükleniyor...",
+    "empty": "Henüz bir ön değerlendirme yapmadın.",
+    "startButton": "Değerlendirmeyi başlat",
+    "loadError": "Liste yüklenemedi"
+  },
+  "new": {
+    "heading": "Ön Değerlendirme",
+    "subheading": "Deneyimin, çalışma tercihlerin ve kendini değerlendirmen üzerine birkaç soru soralım; sana özel bir yetkinlik raporu hazırlayalım.",
+    "genericSubmitError": "Değerlendirme oluşturulamadı.",
+    "adminForbidden": "Yönetici hesabı ön değerlendirme oluşturamaz. Bu özelliği kullanmak için normal bir kullanıcı hesabıyla giriş yapın."
+  },
+  "report": {
+    "loading": "Yükleniyor...",
+    "loadError": "Değerlendirme yüklenemedi",
+    "noReport": "Bu değerlendirme için rapor bulunmuyor."
+  },
+  "history": {
+    "experienceSuffix": "deneyim",
+    "activeBadge": "Aktif"
+  },
+  "reportView": {
+    "heading": "Yetkinlik Raporu",
+    "aiBadge": "Yapay zeka tarafından üretildi",
+    "confidenceLabel": "Güven seviyesi",
+    "confidence": {
+      "dusuk": "Düşük",
+      "orta": "Orta",
+      "yuksek": "Yüksek"
+    },
+    "workStyleHeading": "Çalışma tarzın",
+    "strengthsHeading": "Güçlü yönlerin",
+    "improvementAreasHeading": "Gelişim alanların"
+  },
+  "generation": {
+    "pending": "Yapay zeka raporunu hazırlıyor, bu birkaç saniye sürebilir...",
+    "retryAfter": "Yaklaşık {{minutes}} dakika sonra tekrar deneyebilirsiniz."
+  },
+  "form": {
+    "experienceYearsLabel": "Toplam çalışma deneyimin",
+    "workStatusLabel": "Şu anki durumun",
+    "optionalSuffix": "(opsiyonel)",
+    "selectPlaceholder": "Seçiniz",
+    "workPreferenceLegend": "Nasıl bir işte daha verimlisin?",
+    "teamPreferenceLegend": "Tek başına mı, ekiple mi çalışmayı tercih edersin?",
+    "problemApproachLegend": "İşte beklenmedik bir sorun çıkınca ilk ne yaparsın?",
+    "skillsLabel": "Yeteneklerin",
+    "openAnswersLegend": "Kısa sorular",
+    "progressLabel": "Tamamlanma: %{{percent}}",
+    "groups": {
+      "basics": {
+        "title": "Temel bilgiler",
+        "announced": "Çalışma tarzı grubu açıldı"
+      },
+      "workStyle": {
+        "title": "Çalışma tarzı",
+        "announced": "Öz değerlendirme grubu açıldı"
+      },
+      "optional": {
+        "title": "Kısa sorular ve yetenekler"
+      },
+      "doneBadge": "Tamamlandı"
+    },
+    "openAnswers": {
+      "bestAt": "Yaptığın işlerde en iyi olduğunu düşündüğün şey ne?",
+      "wantToImprove": "Geliştirmek istediğin bir yönün var mı?",
+      "twoYearGoal": "Önümüzdeki 2 yılda nerede olmak istiyorsun?"
+    },
+    "requiredError": "Lütfen zorunlu soruların hepsini cevaplayın.",
+    "submitting": "Oluşturuluyor...",
+    "submit": "Kaydet"
+  },
+  "skillInput": {
+    "removeTag": "{{tag}} etiketini kaldır",
+    "addLabel": "Yetenek etiketi ekle",
+    "placeholderAtLimit": "En fazla {{max}} etiket ekleyebilirsin",
+    "placeholder": "Yeteneğini yaz ve Enter’a bas (ör. forklift kullanımı)",
+    "counter": "{{count}}/{{max}} etiket · listede olmayan bir şey yazabilirsin"
+  },
+  "options": {
+    "experienceYears": {
+      "none": "Hiç çalışmadım",
+      "lt1": "1 yıldan az",
+      "y1_3": "1-3 yıl",
+      "y3_5": "3-5 yıl",
+      "y5_10": "5-10 yıl",
+      "y10plus": "10 yıldan fazla"
+    },
+    "workStatus": {
+      "employed_full": "Tam zamanlı çalışıyorum",
+      "employed_part": "Yarı zamanlı çalışıyorum",
+      "seeking": "İş arıyorum",
+      "student": "Öğrenciyim"
+    },
+    "workPreference": {
+      "hands_on": "Elimle bir şeyler üretirken / tamir ederken",
+      "people": "İnsanlarla iletişim kurarken",
+      "detail_routine": "Detaylı, düzenli, tekrar eden işlerde",
+      "problem_solving": "Sürekli değişen, yeni problemler çözerken",
+      "planning": "Planlama, düzenleme, takip etme işlerinde"
+    },
+    "teamPreference": {
+      "alone": "Tek başıma, kendi hızımda",
+      "small_team": "Küçük bir ekiple",
+      "large_team": "Kalabalık bir ekiple",
+      "leading": "Ekibi yöneterek",
+      "no_preference": "Farketmez"
+    },
+    "problemApproach": {
+      "self": "Kendim çözmeye çalışırım",
+      "ask_experienced": "Deneyimli birine sorarım",
+      "report_manager": "Yöneticime bildiririm",
+      "research": "Daha önce ne yapıldığına bakarım / araştırırım",
+      "team_discussion": "Ekiple konuşup birlikte karar veririz"
+    },
+    "skillSuggestions": [
+      "Ehliyet (B sınıfı)",
+      "Ehliyet (C/E sınıfı)",
+      "Forklift kullanımı",
+      "Depo / stok yönetimi",
+      "Kaynak",
+      "Boya",
+      "Sıva",
+      "Alçıpan",
+      "Elektrik tesisatı",
+      "Su tesisatı",
+      "Marangozluk",
+      "CNC / torna",
+      "Makine bakımı",
+      "Kalite kontrol",
+      "Dikiş",
+      "İş güvenliği",
+      "İlk yardım",
+      "Hasta bakımı",
+      "Çocuk bakımı",
+      "Yaşlı bakımı",
+      "Yemek pişirme",
+      "Pastacılık",
+      "Garsonluk",
+      "Barista",
+      "Kasa kullanımı",
+      "Müşteri ilişkileri",
+      "Satış",
+      "Temizlik makineleri",
+      "Kuaförlük",
+      "Bilgisayar kullanımı",
+      "Excel",
+      "Microsoft Office",
+      "Veri girişi",
+      "Muhasebe",
+      "Sosyal medya yönetimi",
+      "Grafik tasarım",
+      "Fotoğrafçılık",
+      "Yazılım geliştirme",
+      "Ekip yönetimi",
+      "Eğitim verme",
+      "Sunum yapma",
+      "İngilizce",
+      "Almanca",
+      "Arapça"
+    ]
+  }
+}

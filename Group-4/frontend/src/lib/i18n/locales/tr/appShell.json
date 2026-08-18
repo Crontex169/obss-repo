@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "dashboard": "Panel",
+    "interviews": "Görüşmelerim",
+    "preAssessments": "Ön Değerlendirme",
+    "settings": "Ayarlar"
+  },
+  "signOut": "Çıkış yap",
+  "menu": {
+    "open": "Menüyü aç",
+    "close": "Menüyü kapat"
+  }
+}

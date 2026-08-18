@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "interviews": "My Interviews",
+    "preAssessments": "Pre-Assessment",
+    "settings": "Settings"
+  },
+  "signOut": "Sign out",
+  "menu": {
+    "open": "Open menu",
+    "close": "Close menu"
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "dashboard": {
+    "loadError": "Liste yüklenemedi",
+    "title": "Tüm görüşmeler",
+    "description": "Tüm kullanıcıların görüşmeleri — silinen kayıtlar dahil, en yeniden eskiye sıralı.",
+    "loading": "Yükleniyor...",
+    "empty": "Bu filtreye uyan görüşme kaydı yok.",
+    "pagination": "Sayfalama",
+    "totalRecords": "Toplam {{count}} kayıt",
+    "pageOf": "sayfa {{page}} / {{totalPages}}",
+    "previous": "Önceki",
+    "next": "Sonraki"
+  },
+  "stats": {
+    "durationMinutesSeconds": "{{minutes}} dk {{seconds}} sn",
+    "durationSecondsOnly": "{{seconds}} sn",
+    "loadError": "İstatistikler yüklenemedi",
+    "loading": "Yükleniyor...",
+    "title": "İstatistikler",
+    "description": "Tüm zamanlar — kullanıcı tarafından silinen görüşmeler dahil.",
+    "totalInterviews": "Toplam görüşme",
+    "averageDuration": "Ortalama görüşme süresi",
+    "professionCount": "Meslek sayısı"
+  },
+  "interviewDetail": {
+    "level": {
+      "label": "Deneyim",
+      "intern": "Giriş",
+      "junior": "Orta",
+      "mid": "Deneyimli",
+      "senior": "Uzman"
+    },
+    "mode": {
+      "label": "Mod",
+      "written": "Yazılı",
+      "voice": "Sözlü"
+    },
+    "reportState": {
+      "pending": "Değerlendirme raporu hazırlanıyor.",
+      "failed": "Değerlendirme raporu üretilemedi.",
+      "not_applicable": "Bu görüşme için rapor yok (görüşme tamamlanmamış).",
+      "none": "Rapor yok."
+    },
+    "loadError": "Detay yüklenemedi",
+    "loading": "Yükleniyor...",
+    "backToAll": "Tüm görüşmeler",
+    "completed": "Tamamlandı",
+    "incomplete": "Yarım kaldı",
+    "deleted": "Silindi",
+    "startedAt": "Başlangıç",
+    "completedAt": "Tamamlanma",
+    "questionsAndAnswers": "Sorular ve cevaplar",
+    "unanswered": "Cevaplanmadı",
+    "report": {
+      "heading": "Değerlendirme raporu",
+      "technical": "Teknik",
+      "behavioral": "Davranışsal",
+      "general": "Genel Yetkinlik",
+      "strengths": "Güçlü yönler",
+      "improvementAreas": "Gelişim alanları",
+      "additionalNotes": "Ek notlar"
+    },
+    "feedback": {
+      "verdict": {
+        "dogru": "Doğru",
+        "kismen": "Kısmen",
+        "yetersiz": "Yetersiz"
+      },
+      "correctAnswer": "Doğru cevap",
+      "expectedAnswer": "Beklenen cevap"
+    }
+  },
+  "professionFilter": {
+    "label": "Meslek",
+    "all": "Tüm meslekler",
+    "unspecified": "Belirsiz"
+  },
+  "table": {
+    "caption": "Tüm kullanıcıların görüşmeleri — salt-okunur admin görünümü",
+    "user": "Kullanıcı",
+    "position": "Pozisyon",
+    "createdAt": "Oluşturulma",
+    "status": "Durum",
+    "detail": "Detay"
+  },
+  "professionBarChart": {
+    "seriesLabel": "Görüşme",
+    "heading": "Meslek bazlı görüşme sayısı",
+    "empty": "Henüz görüşme kaydı yok — veri yok."
+  },
+  "completionPieChart": {
+    "heading": "Tamamlanma oranı",
+    "empty": "Henüz görüşme kaydı yok — veri yok.",
+    "ratio": "Oran"
+  },
+  "tokenCostPanel": {
+    "heading": "Token / Maliyet",
+    "empty": "Bu görüşme için maliyet bilgisi yok.",
+    "totalTokens": "Toplam token",
+    "estimatedCost": "Tahmini maliyet"
+  },
+  "reports": {
+    "title": "Bildirimler",
+    "description": "Kullanıcıların \"Bildir\" ile gönderdiği sorun mesajları — en yeniden eskiye.",
+    "loadError": "Bildirimler yüklenemedi",
+    "loading": "Yükleniyor...",
+    "empty": "Henüz bildirim yok.",
+    "viewInterview": "Görüşmeyi gör"
+  },
+  "tokenLineChart": {
+    "seriesLabel": "Token",
+    "heading": "Günlük token tüketimi",
+    "windowDays": "son {{count}} gün",
+    "empty": "Bu pencerede token kaydı yok — veri yok.",
+    "windowTotal": "Toplam token miktarı",
+    "peakDay": "En yüksek gün",
+    "windowCost": "Tahmini maliyet"
+  }
+}

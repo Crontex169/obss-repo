@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Build output
+dist/
+build/
+backend/dist/
+frontend/dist/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / coverage
+coverage/
+backend/coverage/
+frontend/coverage/
+playwright-report/
+test-results/
+
+# Prisma
+backend/prisma/*.db
+
+# AI assistant config (local only)
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+/.specify
+
+# Playwright MCP oturum artiklari (snapshot/console/screenshot)
+.playwright-mcp/

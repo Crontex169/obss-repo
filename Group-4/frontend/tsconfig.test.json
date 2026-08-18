@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    // vitest.config.ts `globals: true` -> describe/it/expect global gelir.
+    // jest-dom matcher'lari test/setup.ts'teki import ile kayit edilir.
+    "types": ["vite/client", "vitest/globals"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+
+    /* Bundler mode — tsconfig.app.json ile ayni */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting — testlerde kullanilmayan degisken uyarilari gurultu yaratir,
+       app tarafinda siki kalir. */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  // e2e ayri projede: Playwright + Node ortami, jsdom/vitest degil.
+  // vitest.config.ts da `exclude: ['test/e2e/**']` ile ayni ayrimi yapiyor.
+  "include": ["test", "src"],
+  "exclude": ["test/e2e"]
+}

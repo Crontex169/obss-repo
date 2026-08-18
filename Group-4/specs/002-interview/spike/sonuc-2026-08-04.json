@@ -1,0 +1,318 @@
+{
+  "baseUrl": "https://api.groq.com/openai/v1",
+  "models": [
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b"
+  ],
+  "runs": 1,
+  "results": [
+    {
+      "model": "openai/gpt-oss-20b",
+      "ok": true,
+      "elapsedMs": 2659,
+      "httpStatus": 200,
+      "usage": {
+        "inputTokens": 1540,
+        "outputTokens": 1953
+      },
+      "parseError": null,
+      "parsed": {
+        "rejection": null,
+        "position": "Backend Developer",
+        "questions": [
+          {
+            "type": "multiple_choice",
+            "text": "TypeScript'te 'interface' kavramı nedir?",
+            "options": [
+              "Fonksiyon tanımlamak",
+              "Nesne tipini tanımlamak",
+              "Veritabanı tablosu oluşturmak",
+              "HTTP isteği göndermek"
+            ]
+          },
+          {
+            "type": "multiple_choice",
+            "text": "PostgreSQL'de veri çekmek için kullanılan SQL komutu hangisidir?",
+            "options": [
+              "UPDATE",
+              "DELETE",
+              "SELECT",
+              "INSERT"
+            ]
+          },
+          {
+            "type": "open_ended",
+            "text": "REST API tasarımı yaparken dikkate almanız gereken temel prensipleri açıklayınız.",
+            "options": null
+          },
+          {
+            "type": "open_ended",
+            "text": "Jest ile bir backend servis fonksiyonunu test ederken izlediğiniz adımları ve iyi uygulamaları sıralayınız.",
+            "options": null
+          },
+          {
+            "type": "multiple_choice",
+            "text": "Docker'ın temel amacı nedir?",
+            "options": [
+              "Sanal makineler oluşturmak",
+              "Kod paketlemek ve taşınabilir konteynerler oluşturmak",
+              "Veritabanı yönetmek",
+              "HTTP sunucusu kurmak"
+            ]
+          },
+          {
+            "type": "open_ended",
+            "text": "Mikroservis mimarisinde bir servis performansını artırmak için uygulayabileceğiniz stratejileri detaylandırınız.",
+            "options": null
+          }
+        ]
+      },
+      "raw": null,
+      "case": "gecerli-ilan",
+      "expectRejection": false,
+      "run": 1,
+      "schemaCheck": {
+        "pass": true,
+        "rejected": false,
+        "issues": []
+      },
+      "turkishSignal": {
+        "trCharCount": 40,
+        "wordCount": 79,
+        "trStopwordCount": 9,
+        "note": "ok"
+      }
+    },
+    {
+      "model": "openai/gpt-oss-20b",
+      "ok": false,
+      "elapsedMs": 2686,
+      "httpStatus": 400,
+      "error": "{\"error\":{\"message\":\"Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.\",\"type\":\"invalid_request_error\",\"code\":\"json_validate_failed\",\"failed_generation\":\"max completion tokens reached before generating a valid document\"}}\n",
+      "case": "kisa-ilan-yanlis-ret-freni",
+      "expectRejection": false,
+      "run": 1
+    },
+    {
+      "model": "openai/gpt-oss-20b",
+      "ok": true,
+      "elapsedMs": 698,
+      "httpStatus": 200,
+      "usage": {
+        "inputTokens": 1488,
+        "outputTokens": 282
+      },
+      "parseError": null,
+      "parsed": {
+        "rejection": "not_a_job_posting",
+        "questions": [],
+        "position": null
+      },
+      "raw": null,
+      "case": "ilan-degil-tarif",
+      "expectRejection": true,
+      "run": 1,
+      "schemaCheck": {
+        "pass": true,
+        "rejected": true,
+        "issues": []
+      },
+      "turkishSignal": null
+    },
+    {
+      "model": "openai/gpt-oss-20b",
+      "ok": false,
+      "elapsedMs": 67,
+      "httpStatus": 429,
+      "error": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kymczhy7e50anwcqy138009r` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6800, Requested 2352. Please try again in 8.639999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n",
+      "case": "ilan-degil-talimat-enjeksiyonu",
+      "expectRejection": true,
+      "run": 1
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "ok": true,
+      "elapsedMs": 3081,
+      "httpStatus": 200,
+      "usage": {
+        "inputTokens": 1540,
+        "outputTokens": 1314
+      },
+      "parseError": null,
+      "parsed": {
+        "position": "Backend Developer",
+        "rejection": null,
+        "questions": [
+          {
+            "type": "multiple_choice",
+            "text": "Node.js ile ilgili, event loop'un temel görevi nedir?",
+            "options": [
+              "Veritabanı sorgularını senkronize etmek",
+              "I/O işlemlerini asenkron şekilde yönetmek",
+              "HTML şablonlarını derlemek",
+              "Sunucu tarafı CSS işlemek"
+            ]
+          },
+          {
+            "type": "multiple_choice",
+            "text": "PostgreSQL'de bir tabloya yeni bir sütun eklemek için hangi SQL komutu kullanılır?",
+            "options": [
+              "ALTER TABLE tablo_adı ADD COLUMN yeni_sütun tip;",
+              "MODIFY COLUMN tablo_adı yeni_sütun tip;",
+              "UPDATE tablo_adı SET yeni_sütun = değer;",
+              "CREATE COLUMN tablo_adı yeni_sütun tip;"
+            ]
+          },
+          {
+            "type": "open_ended",
+            "text": "REST API tasarımında, bir kaynağın tekil temsilcisi için hangi HTTP metodunu kullanırsınız ve neden?",
+            "options": null
+          },
+          {
+            "type": "open_ended",
+            "text": "TypeScript'te interface ve type arasındaki farkı açıklayın.",
+            "options": null
+          },
+          {
+            "type": "open_ended",
+            "text": "Docker konteyneri oluştururken Dockerfile'da hangi satır, uygulamanın bağımlılıklarını kurmak için kullanılır? Örnek bir komut verin.",
+            "options": null
+          },
+          {
+            "type": "open_ended",
+            "text": "Mikroservis mimarisinde bir servisin performansını iyileştirmek için uygulayabileceğiniz iki temel yaklaşımı anlatın.",
+            "options": null
+          }
+        ]
+      },
+      "raw": null,
+      "case": "gecerli-ilan",
+      "expectRejection": false,
+      "run": 1,
+      "schemaCheck": {
+        "pass": true,
+        "rejected": false,
+        "issues": []
+      },
+      "turkishSignal": {
+        "trCharCount": 60,
+        "wordCount": 107,
+        "trStopwordCount": 17,
+        "note": "ok"
+      }
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "ok": true,
+      "elapsedMs": 3353,
+      "httpStatus": 200,
+      "usage": {
+        "inputTokens": 1392,
+        "outputTokens": 1463
+      },
+      "parseError": null,
+      "parsed": {
+        "position": "Muhasebeci",
+        "rejection": null,
+        "questions": [
+          {
+            "type": "multiple_choice",
+            "text": "Muhasebeci pozisyonunda genellikle hangi belge hazırlanır?",
+            "options": [
+              "Bilanço",
+              "İş ilanı",
+              "Müşteri anketi",
+              "Proje planı"
+            ]
+          },
+          {
+            "type": "open_ended",
+            "text": "Bu pozisyon İstanbul’da hangi şehirde yer almaktadır?",
+            "options": null
+          },
+          {
+            "type": "multiple_choice",
+            "text": "Deneyimli bir muhasebeci için en önemli beceri aşağıdakilerden hangisidir?",
+            "options": [
+              "Finansal raporlama",
+              "Grafik tasarımı",
+              "Web geliştirme",
+              "Müşteri hizmetleri"
+            ]
+          },
+          {
+            "type": "open_ended",
+            "text": "Tam zamanlı bir işte genellikle haftada kaç gün çalışılır?",
+            "options": null
+          },
+          {
+            "type": "multiple_choice",
+            "text": "Muhasebeci pozisyonunda çalışırken hangi yasal düzenlemeye uyulması gerekir?",
+            "options": [
+              "Türk Ticaret Kanunu",
+              "Spor Federasyonu Yönetmeliği",
+              "İnşaat Yönetmeliği",
+              "Ulaşım Kuralları"
+            ]
+          },
+          {
+            "type": "open_ended",
+            "text": "Deneyimli bir muhasebecinin sorumluluklarından biri olan mali tablo hazırlama sürecini kısaca açıklayınız.",
+            "options": null
+          }
+        ]
+      },
+      "raw": null,
+      "case": "kisa-ilan-yanlis-ret-freni",
+      "expectRejection": false,
+      "run": 1,
+      "schemaCheck": {
+        "pass": true,
+        "rejected": false,
+        "issues": []
+      },
+      "turkishSignal": {
+        "trCharCount": 55,
+        "wordCount": 76,
+        "trStopwordCount": 7,
+        "note": "ok"
+      }
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "ok": true,
+      "elapsedMs": 637,
+      "httpStatus": 200,
+      "usage": {
+        "inputTokens": 1488,
+        "outputTokens": 153
+      },
+      "parseError": null,
+      "parsed": {
+        "position": null,
+        "questions": [],
+        "rejection": "not_a_job_posting"
+      },
+      "raw": null,
+      "case": "ilan-degil-tarif",
+      "expectRejection": true,
+      "run": 1,
+      "schemaCheck": {
+        "pass": true,
+        "rejected": true,
+        "issues": []
+      },
+      "turkishSignal": null
+    },
+    {
+      "model": "openai/gpt-oss-120b",
+      "ok": false,
+      "elapsedMs": 64,
+      "httpStatus": 429,
+      "error": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-120b` in organization `org_01kymczhy7e50anwcqy138009r` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 6408, Requested 2733. Please try again in 8.5575s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}\n",
+      "case": "ilan-degil-talimat-enjeksiyonu",
+      "expectRejection": true,
+      "run": 1
+    }
+  ]
+}

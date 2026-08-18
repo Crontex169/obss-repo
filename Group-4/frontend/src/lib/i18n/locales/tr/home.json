@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "login": "Giriş yap",
+    "goToDashboard": "Panele git"
+  },
+  "hero": {
+    "title": "Gerçek ilanla, gerçek sorularla prova yap.",
+    "description": "Başvuracağın pozisyonun ilanını yapıştır; sana özel mülakat soruları gelsin. Cevaplarını değerlendirip nerede güçlü olduğunu, neyi çalışman gerektiğini madde madde söyleyelim.",
+    "cta": "Mülakata başla"
+  },
+  "steps": [
+    { "title": "İlanı yapıştır", "body": "Başvuracağın pozisyonun metnini ekle." },
+    { "title": "Soruları yanıtla", "body": "Karşına çıkan soruyu yanıtla ve sonraki soruya geç." },
+    { "title": "Raporunu al", "body": "Güçlü yönlerin ve eksiklerin listelenir." }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "title": "Kişisel Verilerin Korunması Hakkında Aydınlatma Metni",
+  "sections": {
+    "dataController": {
+      "heading": "1. Veri Sorumlusu",
+      "body": "OBSS kapsamında geliştirilen bu platform, aşağıda açıklanan kapsamda kişisel verilerinizi işlemektedir."
+    },
+    "processedData": {
+      "heading": "2. İşlenen Kişisel Veriler",
+      "items": [
+        "Kimlik ve iletişim bilgileri (ad, e-posta)",
+        "Hesap bilgileri (şifre [hash'lenmiş], Google hesap kimliği)",
+        "Kullanım verileri (mülakat cevapları, üretilen sorular ve değerlendirme raporları)",
+        "Teknik veriler (IP adresi, tarayıcı/cihaz bilgisi)"
+      ]
+    },
+    "purposes": {
+      "heading": "3. İşlenme Amaçları",
+      "items": [
+        "Hesap oluşturma ve kimlik doğrulama",
+        "Mülakat simülasyonunun çalıştırılması ve değerlendirme raporu üretilmesi",
+        "Hizmet kalitesinin ölçülmesi ve geliştirilmesi"
+      ]
+    },
+    "legalBasis": {
+      "heading": "4. Hukuki Sebep",
+      "body": "Verileriniz, 6698 sayılı KVKK'nın 5. maddesi uyarınca sözleşmenin kurulması ve ifası ile meşru menfaat hukuki sebeplerine dayanılarak işlenmektedir."
+    },
+    "dataTransfer": {
+      "heading": "5. Verilerin Aktarımı",
+      "body": "Mülakat sırasında verdiğiniz cevaplar, değerlendirme yapılabilmesi amacıyla Groq ve DeepSeek yapay zeka servis sağlayıcılarına iletilmektedir."
+    },
+    "retention": {
+      "heading": "6. Saklama Süresi",
+      "body": "Verileriniz, hesabınız aktif olduğu sürece ve değerlendirme sonrasında 2 yıl boyunca saklanmaktadır."
+    },
+    "rights": {
+      "heading": "7. Haklarınız (KVKK m.11)",
+      "body": "KVKK'nın 11. maddesi kapsamında; verilerinizin işlenip işlenmediğini öğrenme, işlenmişse bilgi talep etme, düzeltilmesini veya silinmesini isteme ve işlemeye itiraz etme haklarına sahipsiniz. Taleplerinizi support@smart-interview.me adresine iletebilirsiniz."
+    }
+  }
+}

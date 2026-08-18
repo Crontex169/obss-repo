@@ -1,0 +1,421 @@
+// Prisma şeması — Better Auth çekirdek tabloları + role alanı (FR-007).
+// bkz. specs/001-auth-rol/data-model.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  image         String?
+  role          String    @default("user") // "user" | "admin" (FR-007)
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  // KVKK onay popup'i ilk girişte gösterilir, kabul edildiğinde işaretlenir;
+  // null ise kullanıcı henüz onaylamamış demektir (tek seferlik gösterim).
+  kvkkConsentAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  // 002-interview
+  interviews  Interview[]
+  tokenUsages TokenUsage[]
+
+  // 003-pre-assessment
+  preAssessments PreAssessment[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                   String    @id @default(cuid())
+  userId               String
+  providerId           String // "credential" | "google"
+  accountId            String
+  password             String? // yalnızca credential (hash'li, FR-016)
+  accessToken          String?
+  refreshToken         String?
+  idToken              String?
+  accessTokenExpiresAt DateTime?
+  scope                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// 002-interview — Gorusme dikeyi (specs/002-interview/data-model.md)
+// Better Auth tablolari @@map ile kucuk harf; bu dilimin modelleri @@map
+// KULLANMAZ -> tablo adi PascalCase (docs/API_CONVENTIONS.md 4.4).
+// ---------------------------------------------------------------------------
+
+// --- Bu dilime ozgu enum'lar (T010) ---
+
+// 009-linkedin-ilan-cekme: deger `url`, `linkedin_url` DEGIL. Saglayici adini
+// semaya gomsek ikinci bir ilan sitesi eklendiginde ya yanlis isimli degerle ya
+// da ikinci bir migration ile yasardik; saglayiciya ozgu kisim kodda kalir.
+enum JobPostingSource {
+  text
+  pdf
+  url
+}
+
+enum InterviewMode {
+  written
+  voice
+}
+
+enum QuestionType {
+  multiple_choice
+  open_ended
+}
+
+enum InterviewStatus {
+  in_progress
+  completed
+}
+
+enum ReportStatus {
+  not_applicable
+  pending
+  ready
+  failed
+}
+
+// --- Cross-cutting enum'lar ---
+// Sema sahibi: specs/003-pre-assessment/data-model.md. Implementasyon sirasi
+// Auth -> Interview -> Pre-assessment oldugundan fiilen burada olusurlar;
+// 003-pre-assessment bunlari DEVRALIR, yeniden tanimlamaz.
+
+enum LlmOperation {
+  pre_assessment // 003-pre-assessment
+  question_generation // 002-interview
+  adaptive_evaluation // 002-interview
+  interview_report // 002-interview
+}
+
+enum ReportLanguage {
+  tr
+  en
+}
+
+enum ExperienceLevel {
+  intern
+  junior
+  mid
+  senior
+}
+
+// ---------------------------------------------------------------------------
+// 003-pre-assessment — Ön Yetkinlik Değerlendirmesi dikeyi
+// (specs/003-pre-assessment/data-model.md — şema tasarımının sahibi bu dilimdir)
+//
+// 2026-08-04 kapsam kararı: girdi MESLEK-BAĞIMSIZ. Uygulama yalnızca yazılımcılara
+// değil tüm meslek gruplarına hitap ettiği için `InterestArea` (frontend/backend/ml)
+// enum'u KALDIRILDI; yerine her meslekten adayın cevaplayabileceği enum'lar geldi.
+// ---------------------------------------------------------------------------
+
+enum PreAssessmentStatus {
+  generating
+  completed
+  failed
+}
+
+enum ConfidenceLevel {
+  dusuk
+  orta
+  yuksek
+}
+
+// --- Meslek-bağımsız girdi enum'ları (FR-002) ---
+
+enum ExperienceYears {
+  none
+  lt1
+  y1_3
+  y3_5
+  y5_10
+  y10plus
+}
+
+enum WorkStatus {
+  employed_full
+  employed_part
+  seeking
+  student
+}
+
+enum EducationLevel {
+  primary
+  secondary
+  high_school
+  vocational
+  associate
+  bachelor
+  graduate
+}
+
+enum WorkPreference {
+  hands_on
+  people
+  detail_routine
+  problem_solving
+  planning
+}
+
+enum TeamPreference {
+  alone
+  small_team
+  large_team
+  leading
+  no_preference
+}
+
+enum LearningStyle {
+  shown
+  by_doing
+  written
+  video
+  mentorship
+}
+
+enum ProblemApproach {
+  self
+  ask_experienced
+  report_manager
+  research
+  team_discussion
+}
+
+// --- Modeller (T011) ---
+
+model Interview {
+  id                   String           @id @default(cuid())
+  userId               String
+  jobPostingSource     JobPostingSource
+  jobPostingText       String
+  jobPostingFileName   String?
+  questionCount        Int // 5-20 arasi dogrulama uygulama katmaninda (FR-003)
+  mode                 InterviewMode
+  adaptiveEnabled      Boolean          @default(false)
+  status               InterviewStatus  @default(in_progress)
+  reportStatus         ReportStatus     @default(not_applicable)
+  currentQuestionOrder Int              @default(1)
+  // Ilandan cikarilan pozisyon; soru uretimi cagrisinin AYNI yanitinda doner
+  position             String?
+  level                ExperienceLevel
+  language             ReportLanguage
+  // status="completed" ile ayni transaction'da yazilir; sure = completedAt - createdAt
+  completedAt          DateTime?
+  // Soft-delete temeli; silme UC NOKTASI 004-history kapsaminda
+  deletedAt            DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions      Question[]
+  report         Report?
+  tokenUsages    TokenUsage[]
+  problemReports InterviewProblemReport[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([deletedAt])
+}
+
+// "Bildir" aksiyonu (Görüşmelerim listesi, üç nokta menüsü) — kullanıcı bir
+// görüşme/rapor hakkında serbest metinli sorun bildirir. Admin tarafı (liste/
+// okundu işaretleme) bu dilimin kapsamı dışında; yalnızca kayıt tutulur.
+model InterviewProblemReport {
+  id          String   @id @default(cuid())
+  interviewId String
+  userId      String
+  message     String
+  createdAt   DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+}
+
+model Question {
+  id                  String       @id @default(cuid())
+  interviewId         String
+  order               Int
+  type                QuestionType
+  text                String
+  // Prisma skaler listeler opsiyonel OLAMAZ; multiple_choice disinda bos dizi.
+  options             String[]
+  // FR-031 (Ipucu & Rehberlik paneli, issue #48) - LLM ayni cagrida uretir,
+  // zorunlu degil (uretemezse null, soru yine gecerli).
+  tip                 String?
+  rationale           String?
+  adaptedFromAnswerId String?
+  isBaseline          Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  answer    Answer?
+
+  @@unique([interviewId, order])
+}
+
+model Answer {
+  id         String        @id @default(cuid())
+  questionId String        @unique
+  content    String
+  sourceMode InterviewMode
+  answeredAt DateTime      @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id                String   @id @default(cuid())
+  interviewId       String   @unique
+  overallImpression String
+  strengths         String[]
+  improvementAreas  String[]
+  technicalScore    Int // 0-100 (uygulama katmaninda dogrulanir)
+  behavioralScore   Int
+  generalScore      Int
+  // LLM uretmez; scores dogrulandiktan SONRA sunucuda round((technical+
+  // behavioral+general)/3) ile hesaplanip yazilir (FR-026). Kayitla saklanir
+  // ki formul sonradan degisse bile gecmis raporlarin puani kaymasin.
+  overallScore      Int
+  additionalNotes   String[]
+  // Issue #68 — soru bazli geri bildirim:
+  // [{ order, verdict: "dogru"|"kismen"|"yetersiz", correctAnswer, explanation }]
+  // Iliskisel tablo DEGIL Json: hicbir sorgu bu icerigi filtrelemiyor/join'lemiyor,
+  // raporla birlikte yazilip raporla birlikte okunuyor. Rapor yeniden uretilirse
+  // (retry) icerik de raporla birlikte yenilenir. Eski raporlarda bos dizi.
+  questionFeedback  Json     @default("[]")
+  generatedAt       DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+// --- Cross-cutting: TEK maliyet tablosu (T012) ---
+// Sema sahibi: specs/003-pre-assessment/data-model.md.
+// preAssessmentId FK'si 003 dilimi PreAssessment modelini ekledigi zaman baglanir;
+// simdilik iliskisiz String? olarak tutulur (FK olmayan kolon, veri kaybi yok).
+model TokenUsage {
+  id               String       @id @default(cuid())
+  userId           String
+  operation        LlmOperation
+  preAssessmentId  String?
+  interviewId      String?
+  provider         String // "groq" | "deepseek" (ADR-0007)
+  model            String
+  inputTokens      Int
+  outputTokens     Int
+  estimatedCostUsd Decimal      @db.Decimal(10, 6)
+  succeeded        Boolean
+  // Saglayici cagrisinin duvar saati suresi (ms). Nullable: bu kolon eklenmeden
+  // once yazilmis kayitlar icin. LLM gecikmesinin tek olcum kaynagi (operation
+  // kirilimiyla ortalama/p95 cikarilabilir) — bkz. docs/METRICS.md.
+  durationMs       Int?
+  createdAt        DateTime     @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interview     Interview?     @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  // 003-pre-assessment: kayıt silinmez ama yine de audit izini korumak için SetNull.
+  preAssessment PreAssessment? @relation(fields: [preAssessmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([operation, createdAt])
+  @@index([interviewId])
+}
+
+// --- 003-pre-assessment modelleri (specs/003-pre-assessment/data-model.md) ---
+
+model PreAssessment {
+  id              String              @id @default(cuid())
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Meslek-bağımsız zorunlu girdiler (FR-002, FR-002a)
+  experienceYears ExperienceYears
+  workStatus      WorkStatus
+  workPreference  WorkPreference
+  teamPreference  TeamPreference
+  learningStyle   LearningStyle?
+  problemApproach ProblemApproach
+  selfRatings     Json? // 8 madde x 1-5 (opsiyonel, 008: form sadelestirme)
+
+  // Opsiyonel girdiler — skills ve openAnswers SERBEST METİNDİR (FR-002b/c):
+  // prompt'a girmeden önce sanitize edilir, izolasyon bloğunda taşınır (FR-012).
+  educationLevel  EducationLevel?
+  skills          String[]
+  openAnswers     Json?
+
+  // TÜRETİLMİŞ — kullanıcıya sorulmaz (FR-002d); 002-interview FR-021 bunu okur.
+  experienceLevel ExperienceLevel
+
+  language        ReportLanguage
+  status          PreAssessmentStatus @default(generating)
+  isActive        Boolean             @default(false)
+  failureReason   String?
+  report          CompetencyReport?
+  tokenUsages     TokenUsage[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  // Kullanıcı başına tek aktif kayıt: partial unique index — elle migration
+  // (bkz. backend/prisma/manual-constraints.sql + migration.sql, FR-004).
+}
+
+model CompetencyReport {
+  id                String          @id @default(cuid())
+  preAssessmentId   String          @unique
+  preAssessment     PreAssessment   @relation(fields: [preAssessmentId], references: [id], onDelete: Cascade)
+  genelOzet         String
+  gucluYonler       String[]
+  gelisimAlanlari   String[]
+  calismaTarziOzeti String
+  guvenSeviyesi     ConfidenceLevel
+  createdAt         DateTime        @default(now())
+}

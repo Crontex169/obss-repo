@@ -1,0 +1,13 @@
+{
+  "moduleFileExtensions": ["js", "mjs", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": "(\\.e2e-spec\\.ts$)|(integration[\\\\/].*\\.spec\\.ts$)",
+  "transform": {
+    "^.+\\.(t|j|mj)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": [],
+  "globalSetup": "<rootDir>/global-setup.js",
+  "testTimeout": 60000,
+  "maxWorkers": 1
+}

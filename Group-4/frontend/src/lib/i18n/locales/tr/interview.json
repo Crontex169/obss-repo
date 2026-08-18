@@ -1,0 +1,203 @@
+{
+  "list": {
+    "title": "Görüşmelerim",
+    "newInterview": "Yeni görüşme",
+    "empty": "Henüz bir görüşme başlatmadın.",
+    "loadFailed": "Liste yüklenemedi"
+  },
+  "new": {
+    "title": "Yeni görüşme",
+    "subtitle": "İş ilanını yapıştır, PDF yükle ya da ilan bağlantısını ver; sana özel sorular hazırlayalım.",
+    "cardTitle": "İlan kaynağı",
+    "cardSubtitle": "Metni yapıştır, PDF yükle ya da ilan bağlantısını ver",
+    "sourceText": "Metin",
+    "sourcePdf": "PDF",
+    "sourceUrl": "Bağlantı",
+    "jobPostingPlaceholder": "İş ilanını yapıştırın",
+    "jobPostingUrlPlaceholder": "https://www.linkedin.com/jobs/view/...",
+    "jobPostingUrlHint": "LinkedIn iş ilanı bağlantısını yapıştırın. İlan metni otomatik çekilir.",
+    "questionCountLabel": "Soru sayısı (5-20)",
+    "levelLabel": "Deneyim",
+    "levelIntern": "Giriş",
+    "levelJunior": "Orta",
+    "levelMid": "Deneyimli",
+    "levelSenior": "Uzman",
+    "adaptiveLabel": "Adaptif soru akışı",
+    "adaptiveTooltip": "Etkinleştirilirse bir sonraki soru, verdiğin cevaba göre anlık olarak uyarlanır. Kapalıyken sorular, görüşme başında belirlenen sabit sırayla sorulur.",
+    "submit": "Görüşmeyi Başlat",
+    "submitting": "Oluşturuluyor...",
+    "errors": {
+      "emptyText": "İş ilanı metni boş olamaz.",
+      "noPdf": "Lütfen bir PDF dosyası seçin.",
+      "emptyUrl": "İlan bağlantısı boş olamaz.",
+      "notJobPosting": "Girilen metin iş ilanı olarak anlaşılamadı. Lütfen kontrol edip tekrar deneyin.",
+      "createFailed": "Görüşme oluşturulamadı"
+    }
+  },
+  "session": {
+    "loading": "Yükleniyor...",
+    "loadFailed": "Görüşme yüklenemedi",
+    "completedRedirect": "Görüşme tamamlandı, rapora yönlendiriliyorsunuz...",
+    "questionProgress": "Soru {{current}}/{{total}}",
+    "questionLoading": "Soru yükleniyor... Sayfayı yenileyin.",
+    "submitFailed": "Cevap gönderilemedi",
+    "send": "Cevabı gönder",
+    "sending": "Gönderiliyor...",
+    "saveAndExit": "Kaydet ve çık",
+    "progressSaved": "İlerlemen kaydedildi, istediğin zaman kaldığın yerden devam edebilirsin.",
+    "notice": {
+      "title": "Başlamadan önce",
+      "description": "Unutma, her cevabını gönderdiğin an kaydedilir ve bir daha değiştiremezsin; bu sorudan sonra önceki sorulara da geri dönemezsin. Bu uyarı yalnızca ilk soru için gösterilir.",
+      "confirm": "Anladım, başla"
+    }
+  },
+  "report": {
+    "title": "Görüşme Detayı",
+    "loadFailed": "Görüşme yüklenemedi",
+    "aiGenerated": "Yapay zeka tarafından üretildi",
+    "retryFailed": "Rapor üretilemedi",
+    "overallScore": "Ortalama Skor",
+    "axisTechnical": "Teknik",
+    "axisBehavioral": "Davranışsal",
+    "axisGeneral": "Genel Yetkinlik",
+    "overallImpression": "Genel İzlenim",
+    "strengths": "Güçlü Yönler",
+    "improvementAreas": "Geliştirilmesi Gereken Alanlar",
+    "additionalNotes": "Ek Notlar",
+    "backToHome": "Ana sayfaya dön"
+  },
+  "questionAnswerList": {
+    "heading": "Sorular ve Cevaplar",
+    "verdict": {
+      "dogru": "Doğru",
+      "kismen": "Kısmen",
+      "yetersiz": "Yetersiz"
+    },
+    "correctAnswerLabel": "Doğru cevap ve açıklama",
+    "expectedAnswerLabel": "Beklenen cevap ve açıklama"
+  },
+  "pdfExport": {
+    "downloaded": "PDF indirildi",
+    "download": "PDF olarak indir"
+  },
+  "modeSelector": {
+    "legend": "Görüşme modu",
+    "written": "Yazılı",
+    "voice": "Sözlü",
+    "voiceUnsupported": "(bu tarayıcıda desteklenmiyor — yazılı modu kullanın)"
+  },
+  "scoreTrend": {
+    "heading": "Skor Trendi (aynı pozisyon)"
+  },
+  "timer": {
+    "remaining": "Kalan süre: {{seconds}} sn"
+  },
+  "pdfUpload": {
+    "invalidType": "Yalnızca PDF dosyası yükleyebilirsiniz.",
+    "tooLarge": "PDF dosyası en fazla {{maxSizeMb}} MB olabilir."
+  },
+  "questionCard": {
+    "answerPlaceholder": "Cevabınızı yazın",
+    "transcriptPlaceholder": "Söyledikleriniz burada görünür.",
+    "edit": "Düzenle",
+    "editDone": "Bitti"
+  },
+  "reportState": {
+    "pendingTitle": "Değerlendirme raporunuz hazırlanıyor...",
+    "pendingSubtitle": "Bu işlem bir dakikayı bulabilir.",
+    "rateLimited": "Saatlik deneme sınırına ulaştınız. Yaklaşık {{minutes}} dakika sonra tekrar deneyebilirsiniz.",
+    "safeToRetry": "Cevaplarınız kaydedildi ve kaybolmadı — raporu yeniden üretebilirsiniz.",
+    "failedDefault": "Rapor üretilemedi"
+  },
+  "deleteDialog": {
+    "trigger": "Sil",
+    "ariaLabel": "{{item}} görüşmesini sil",
+    "title": "Görüşmeyi sil",
+    "descriptionNamed": "\"{{item}}\" görüşmesi listenizden kaldırılacak. Bu işlem geri alınamaz.",
+    "descriptionGeneric": "Bu görüşme listenizden kaldırılacak. Bu işlem geri alınamaz.",
+    "cancel": "Vazgeç",
+    "confirm": "Sil"
+  },
+  "voiceControls": {
+    "stopRecording": "Kaydı durdur",
+    "speakAnswer": "Konuşarak cevapla",
+    "replayQuestion": "Soruyu tekrar oku",
+    "listening": "Dinleniyor...",
+    "micDenied": "Mikrofon izni verilmedi. Cevabınızı yazarak girebilirsiniz.",
+    "voiceError": "Ses alınamadı. Tekrar deneyin veya cevabınızı yazın.",
+    "noMicrophone": "Mikrofon bulunamadı. Cihazınızın bağlı olduğundan emin olun veya cevabınızı yazın.",
+    "networkError": "Ses tanıma servisine ulaşılamadı. İnternet bağlantınızı kontrol edin veya cevabınızı yazın.",
+    "listeningHint": "Konuşmaya başlayın — duyduklarım burada görünecek.",
+    "voiceMissing": "Bu cihazda {{language}} için kurulu bir konuşma sesi yok; okuma sistem varsayılanıyla yapılacak. İşletim sistemi ayarlarından {{language}} sesini eklerseniz doğru telaffuzla okunur.",
+    "languageName": {
+      "tr": "Türkçe",
+      "en": "İngilizce"
+    },
+    "notSupported": "Bu tarayıcı sesli girişi desteklemiyor.",
+    "notSupportedFallback": "Bu tarayıcı sesli girişi desteklemiyor — cevabınızı yazarak girin.",
+    "greeting": "Merhaba, hoş geldiniz. Bugünkü görüşmeyi ben yürüteceğim. {{position}} pozisyonu için size toplam {{count}} soru soracağım ve her soru için {{seconds}} saniyeniz olacak. Hazırsanız ilk soruyla başlıyoruz.",
+    "greetingNoPosition": "Merhaba, hoş geldiniz. Bugünkü görüşmeyi ben yürüteceğim. Size toplam {{count}} soru soracağım ve her soru için {{seconds}} saniyeniz olacak. Hazırsanız ilk soruyla başlıyoruz.",
+    "transitions": [
+      "Teşekkür ederim, sıradaki soruya geçelim.",
+      "Anladım, teşekkürler. Devam edelim.",
+      "Not aldım, teşekkür ederim. Bir sonraki sorum şu:",
+      "Teşekkürler. Şimdi şunu sormak istiyorum:"
+    ],
+    "closing": "Görüşmemiz burada tamamlandı. Ayırdığınız zaman için teşekkür ederim, değerlendirme raporunuz hazırlanıyor.",
+    "status": {
+      "speaking": "Asistan konuşuyor",
+      "listening": "Sizi dinliyorum",
+      "reviewing": "Cevabınızı kontrol edin",
+      "idle": "Hazır"
+    },
+    "reviewHint": "Söyledikleriniz aşağıda. Gerekirse düzeltip gönderin.",
+    "speakAgain": "Yeniden konuş",
+    "autoFlowLabel": "Otomatik akış",
+    "autoFlowHint": "Kapatırsanız mikrofonu ve geçişleri kendiniz yönetirsiniz.",
+    "skipSpeech": "Okumayı geç"
+  },
+  "hintPanel": {
+    "trigger": "İpucu Göster",
+    "close": "Paneli kapat",
+    "hintTab": "İpucu",
+    "rationaleTab": "Neden bu soru?",
+    "hintEmpty": "Bu soru için ipucu üretilemedi.",
+    "rationaleEmpty": "Bu soru için gerekçe üretilemedi."
+  },
+  "card": {
+    "unknownPosition": "Belirsiz pozisyon",
+    "deleted": "Silindi",
+    "statusInProgress": "Yarım Kaldı",
+    "statusCompleted": "Tamamlandı",
+    "reportPending": "Rapor hazırlanıyor",
+    "reportReady": "Rapor hazır",
+    "reportFailed": "Rapor üretilemedi",
+    "questionCount": "{{count}} soru",
+    "modeVoice": "Sözlü",
+    "modeWritten": "Yazılı",
+    "levelIntern": "Giriş",
+    "levelJunior": "Orta",
+    "levelMid": "Deneyimli",
+    "levelSenior": "Uzman",
+    "deletedToast": "Görüşme silindi",
+    "deleteFailed": "Silinemedi",
+    "viewReport": "Raporu gör",
+    "more": "Daha fazla",
+    "downloadReport": "Raporu indir",
+    "downloading": "İndiriliyor...",
+    "downloadFailed": "Rapor indirilemedi",
+    "retryReport": "Yeniden dene"
+  },
+  "reportProblem": {
+    "trigger": "Bildir",
+    "title": "Sorun bildir",
+    "description": "Bu görüşme ya da raporuyla ilgili sorunu kısaca açıkla.",
+    "placeholder": "Sorunu yazın...",
+    "cancel": "Vazgeç",
+    "submit": "Gönder",
+    "submitting": "Gönderiliyor...",
+    "sentToast": "Bildirimin alındı, teşekkürler.",
+    "emptyError": "Lütfen bir mesaj yazın.",
+    "sendFailed": "Bildirim gönderilemedi"
+  }
+}

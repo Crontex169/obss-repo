@@ -1,0 +1,10 @@
+{
+  "heading": "Support",
+  "description": "Ran into a problem or have a suggestion? Write to us. We usually reply within one business day.",
+  "copy": "Copy address",
+  "copied": "Support address copied",
+  "copyFailed": "Could not copy — you can select the address manually.",
+  "onError": "If the problem persists, write to us:",
+  "authHint": "Can't sign in?",
+  "footerRights": "All rights reserved."
+}

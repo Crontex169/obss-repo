@@ -1,0 +1,42 @@
+{
+  "title": "Personal Data Protection Notice",
+  "sections": {
+    "dataController": {
+      "heading": "1. Data Controller",
+      "body": "This platform, developed as part of OBSS, processes your personal data within the scope described below."
+    },
+    "processedData": {
+      "heading": "2. Personal Data Processed",
+      "items": [
+        "Identity and contact information (name, email)",
+        "Account information (password [hashed], Google account ID)",
+        "Usage data (interview answers, generated questions and assessment reports)",
+        "Technical data (IP address, browser/device information)"
+      ]
+    },
+    "purposes": {
+      "heading": "3. Purposes of Processing",
+      "items": [
+        "Account creation and identity verification",
+        "Running the interview simulation and generating the assessment report",
+        "Measuring and improving service quality"
+      ]
+    },
+    "legalBasis": {
+      "heading": "4. Legal Basis",
+      "body": "Your data is processed based on the legal grounds of contract formation/performance and legitimate interest, pursuant to Article 5 of Turkish Law No. 6698 on the Protection of Personal Data (KVKK)."
+    },
+    "dataTransfer": {
+      "heading": "5. Data Transfer",
+      "body": "The answers you give during the interview are shared with the Groq and DeepSeek AI service providers for the purpose of generating the assessment."
+    },
+    "retention": {
+      "heading": "6. Retention Period",
+      "body": "Your data is retained for as long as your account is active, and for 2 years after the assessment."
+    },
+    "rights": {
+      "heading": "7. Your Rights (KVKK Art. 11)",
+      "body": "Under Article 11 of the KVKK, you have the right to learn whether your data is being processed, request information if it is, request correction or deletion, and object to the processing. You can send your requests to support@smart-interview.me."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "retry": "Retry",
+  "retrying": "Retrying...",
+  "loading": "Loading...",
+  "save": "Save",
+  "saving": "Saving...",
+  "cancel": "Cancel",
+  "close": "Close",
+  "delete": "Delete",
+  "genericError": "Something went wrong.",
+  "yes": "Yes",
+  "no": "No"
+}

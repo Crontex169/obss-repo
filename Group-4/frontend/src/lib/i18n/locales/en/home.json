@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "login": "Log in",
+    "goToDashboard": "Go to dashboard"
+  },
+  "hero": {
+    "title": "Rehearse with a real listing, real questions.",
+    "description": "Paste the listing for the role you're applying to and get interview questions tailored to it. We'll score your answers and spell out exactly where you're strong and what to work on.",
+    "cta": "Start the interview"
+  },
+  "steps": [
+    { "title": "Paste the listing", "body": "Add the text of the position you're applying for." },
+    { "title": "Answer the questions", "body": "Answer the question shown and move on to the next." },
+    { "title": "Get your report", "body": "Your strengths and gaps are listed out for you." }
+  ]
+}

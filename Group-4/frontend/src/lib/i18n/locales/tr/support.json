@@ -1,0 +1,10 @@
+{
+  "heading": "Destek",
+  "description": "Bir sorunla karşılaştıysanız veya bir öneriniz varsa bize yazın. Hafta içi genellikle 1 iş günü içinde dönüş yapıyoruz.",
+  "copy": "Adresi kopyala",
+  "copied": "Destek adresi kopyalandı",
+  "copyFailed": "Kopyalanamadı — adresi elle seçebilirsiniz.",
+  "onError": "Sorun devam ederse bize yazın:",
+  "authHint": "Yardıma mı ihtiyacınız var?",
+  "footerRights": "Tüm hakları saklıdır."
+}

@@ -1,0 +1,27 @@
+{
+  "greeting": "Hi, {{name}}",
+  "greetingFallback": "Your dashboard",
+  "subtitle": "",
+  "startInterview": "New interview",
+  "preAssessment": {
+    "readyMessage": "Your pre-assessment report is ready — your interview questions are personalized to this profile.",
+    "missingMessage": "You don't have a pre-assessment yet. Answer a few questions and we'll tailor your interviews to you.",
+    "viewReport": "View pre-assessment report",
+    "fillIn": "Fill in pre-assessment"
+  },
+  "empty": {
+    "title": "You don't have any interviews yet",
+    "description": "Starting your first interview takes less than a minute."
+  },
+  "stats": {
+    "total": "Total interviews",
+    "completed": "Completed",
+    "inProgress": "In progress",
+    "reportReady": "Report ready"
+  },
+  "recent": {
+    "heading": "Your recent interviews",
+    "viewAll": "View all →"
+  },
+  "loadFailed": "Couldn't load the dashboard"
+}

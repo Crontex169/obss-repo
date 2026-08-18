@@ -1,0 +1,119 @@
+{
+  "dashboard": {
+    "loadError": "Failed to load the list",
+    "title": "All interviews",
+    "description": "Interviews from all users — including deleted records, newest first.",
+    "loading": "Loading...",
+    "empty": "No interviews match this filter.",
+    "pagination": "Pagination",
+    "totalRecords": "{{count}} records total",
+    "pageOf": "page {{page}} / {{totalPages}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "stats": {
+    "durationMinutesSeconds": "{{minutes}} min {{seconds}} sec",
+    "durationSecondsOnly": "{{seconds}} sec",
+    "loadError": "Failed to load statistics",
+    "loading": "Loading...",
+    "title": "Statistics",
+    "description": "All time — including interviews deleted by users.",
+    "totalInterviews": "Total interviews",
+    "averageDuration": "Average interview duration",
+    "professionCount": "Number of professions"
+  },
+  "interviewDetail": {
+    "level": {
+      "label": "Experience",
+      "intern": "Entry",
+      "junior": "Intermediate",
+      "mid": "Experienced",
+      "senior": "Expert"
+    },
+    "mode": {
+      "label": "Mode",
+      "written": "Written",
+      "voice": "Voice"
+    },
+    "reportState": {
+      "pending": "The evaluation report is being prepared.",
+      "failed": "The evaluation report could not be generated.",
+      "not_applicable": "No report for this interview (interview not completed).",
+      "none": "No report."
+    },
+    "loadError": "Failed to load details",
+    "loading": "Loading...",
+    "backToAll": "All interviews",
+    "completed": "Completed",
+    "incomplete": "Incomplete",
+    "deleted": "Deleted",
+    "startedAt": "Started",
+    "completedAt": "Completed at",
+    "questionsAndAnswers": "Questions and answers",
+    "unanswered": "Not answered",
+    "report": {
+      "heading": "Evaluation report",
+      "technical": "Technical",
+      "behavioral": "Behavioral",
+      "general": "General Competency",
+      "strengths": "Strengths",
+      "improvementAreas": "Areas for improvement",
+      "additionalNotes": "Additional notes"
+    },
+    "feedback": {
+      "verdict": {
+        "dogru": "Correct",
+        "kismen": "Partial",
+        "yetersiz": "Insufficient"
+      },
+      "correctAnswer": "Correct answer",
+      "expectedAnswer": "Expected answer"
+    }
+  },
+  "professionFilter": {
+    "label": "Profession",
+    "all": "All professions",
+    "unspecified": "Unspecified"
+  },
+  "table": {
+    "caption": "Interviews from all users — read-only admin view",
+    "user": "User",
+    "position": "Position",
+    "createdAt": "Created",
+    "status": "Status",
+    "detail": "Detail"
+  },
+  "professionBarChart": {
+    "seriesLabel": "Interviews",
+    "heading": "Interview count by profession",
+    "empty": "No interview records yet — no data."
+  },
+  "completionPieChart": {
+    "heading": "Completion rate",
+    "empty": "No interview records yet — no data.",
+    "ratio": "Ratio"
+  },
+  "tokenCostPanel": {
+    "heading": "Tokens / Cost",
+    "empty": "No cost information for this interview.",
+    "totalTokens": "Total tokens",
+    "estimatedCost": "Estimated cost"
+  },
+  "reports": {
+    "title": "Reports",
+    "description": "\"Report\" messages sent by users — newest first.",
+    "loadError": "Failed to load reports",
+    "loading": "Loading...",
+    "empty": "No reports yet.",
+    "viewInterview": "View interview"
+  },
+  "tokenLineChart": {
+    "seriesLabel": "Tokens",
+    "heading": "Daily token consumption",
+    "windowDays": "last {{count}} days",
+    "empty": "No token records in this window — no data.",
+    "windowTotal": "Total token count",
+    "peakDay": "Peak day",
+    "windowCost": "Estimated cost"
+  }
+}

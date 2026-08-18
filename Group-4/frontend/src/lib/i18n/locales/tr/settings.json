@@ -1,0 +1,36 @@
+{
+  "title": "Ayarlar",
+  "account": {
+    "heading": "Hesap"
+  },
+  "language": {
+    "heading": "Dil",
+    "description": "Arayüz ve yeni oluşturulacak mülakat/rapor içeriklerinin dilini seçin.",
+    "tr": "TR",
+    "en": "EN"
+  },
+  "theme": {
+    "heading": "Görünüm",
+    "description": "Arayüzün açık mı koyu mu görüneceğini seçin. Tercihiniz bu tarayıcıda hatırlanır.",
+    "light": "Açık",
+    "dark": "Koyu"
+  },
+  "deleteAccount": {
+    "heading": "Hesabı sil",
+    "description": "Hesabınız; mülakatlarınız, ön değerlendirmeleriniz ve raporlarınızla birlikte kalıcı olarak silinir. Bu işlem geri alınamaz.",
+    "trigger": "Hesabımı sil",
+    "dialogTitle": "Hesabınızı kalıcı olarak silmek üzeresiniz",
+    "dialogDescription": "Hesabınız ve tüm mülakat/ön değerlendirme kayıtlarınız veritabanından tamamen silinecek. Bu işlem geri alınamaz ve aynı bilgilerle tekrar giriş yapamazsınız.",
+    "passwordLabel": "Onaylamak için şifrenizi girin",
+    "confirmLabel": "Bu işlemin geri alınamayacağını anlıyorum.",
+    "cancel": "Vazgeç",
+    "confirm": "Hesabımı kalıcı olarak sil",
+    "deleting": "Siliniyor…",
+    "errors": {
+      "invalidPassword": "Şifre hatalı.",
+      "notConfirmed": "Devam etmek için onay kutusunu işaretleyin.",
+      "forbidden": "Yönetici hesapları bu ekrandan silinemez.",
+      "generic": "Hesap silinemedi. Lütfen tekrar deneyin."
+    }
+  }
+}

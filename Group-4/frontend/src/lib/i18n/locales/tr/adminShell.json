@@ -1,0 +1,11 @@
+{
+  "goToAdminPanel": "Admin paneline git",
+  "badge": "Admin",
+  "nav": {
+    "interviews": "Görüşmeler",
+    "reports": "Bildirimler",
+    "stats": "İstatistikler"
+  },
+  "readOnlyNotice": "Salt-okunur görünüm",
+  "signOut": "Çıkış yap"
+}

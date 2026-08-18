@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OBSS — Yapay Zeka ile Mülakat Provası</title>
+    <!-- Tema, React yüklenmeden ÖNCE uygulanır: aksi halde koyu tema seçili
+         kullanıcı her açılışta bir kare beyaz ekran görürdü. Mantığın tek
+         kaynağı src/lib/theme/index.ts, burası onun satır içi ikizi. -->
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('app-theme') === 'dark' ? 'dark' : 'light'
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  <!-- impeccable-live-start -->
+<script src="http://localhost:8400/live.js?token=ba2b1ff8-76c9-44b5-a821-0190850b14d0"></script>
+<!-- impeccable-live-end -->
+</body>
+</html>

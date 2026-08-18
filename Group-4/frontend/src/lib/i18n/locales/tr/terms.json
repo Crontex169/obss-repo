@@ -1,0 +1,63 @@
+{
+  "title": "Kullanım Şartları ve Gizlilik Politikası",
+  "sections": {
+    "scope": {
+      "heading": "1. Hizmetin Kapsamı",
+      "body": "Bu platform, yapay zeka destekli mülakat provası ve ön değerlendirme hizmeti sunar. Amaç pratik yapmanızı sağlamaktır; üretilen sorular, cevap değerlendirmeleri ve raporlar gerçek bir işe alım kararının yerine geçmez."
+    },
+    "account": {
+      "heading": "2. Hesap ve Kullanım Kuralları",
+      "items": [
+        "Kayıt sırasında doğru ve güncel bilgi vermelisiniz.",
+        "Hesabınızın güvenliğinden siz sorumlusunuz; şifrenizi kimseyle paylaşmayın.",
+        "Başkasına ait kişisel veriyi izinsiz olarak platforma girmeyin.",
+        "Hizmeti otomatik araçlarla aşırı yüklemeyin, tersine mühendislik yapmayın veya güvenlik önlemlerini aşmaya çalışmayın.",
+        "Hakaret, ayrımcılık veya yasa dışı içerik üretmek amacıyla kullanmayın."
+      ]
+    },
+    "aiContent": {
+      "heading": "3. Yapay Zeka Üretimi İçerik",
+      "body": "Mülakat soruları, ipuçları ve değerlendirme raporları büyük dil modelleri tarafından üretilir. Bu içerik hatalı, eksik veya yanıltıcı olabilir; doğruluğu garanti edilmez. Kariyer kararlarınızı yalnızca bu çıktılara dayandırmayın."
+    },
+    "intellectualProperty": {
+      "heading": "4. Fikri Mülkiyet",
+      "body": "Platformun arayüzü, tasarımı ve kaynak kodu geliştiricilerine aittir. Mülakat sırasında verdiğiniz cevaplar sizindir; hizmeti işletebilmemiz ve size rapor üretebilmemiz için gereken sınırlı kullanım hakkını bize vermiş olursunuz."
+    },
+    "termination": {
+      "heading": "5. Askıya Alma ve Hesabın Sonlandırılması",
+      "body": "Bu şartların ihlali hâlinde hesabınızın erişimi kısıtlanabilir veya sonlandırılabilir. Siz de dilediğiniz an Ayarlar sayfasından hesabınızı kalıcı olarak silebilirsiniz."
+    },
+    "liability": {
+      "heading": "6. Sorumluluğun Sınırı",
+      "body": "Hizmet \"olduğu gibi\" sunulur. Kesintisiz veya hatasız çalışacağı taahhüt edilmez. Hizmetin kullanımından doğan dolaylı zararlardan sorumluluk kabul edilmez."
+    },
+    "privacyCollected": {
+      "heading": "7. Gizlilik — Toplanan Veriler",
+      "items": [
+        "Hesap bilgileri: ad, e-posta, şifre (yalnızca hash'lenmiş hâliyle) veya Google hesap kimliği",
+        "Kullanım verileri: mülakat cevaplarınız, üretilen sorular, değerlendirme raporları ve ön değerlendirme yanıtlarınız",
+        "Teknik veriler: IP adresi, tarayıcı ve cihaz bilgisi"
+      ]
+    },
+    "privacySharing": {
+      "heading": "8. Gizlilik — Kullanım ve Paylaşım",
+      "body": "Verileriniz hizmeti sunmak, değerlendirme üretmek ve hizmet kalitesini ölçmek için kullanılır. Mülakat cevaplarınız, değerlendirme üretilebilmesi amacıyla Groq ve DeepSeek yapay zeka servis sağlayıcılarına iletilir. Google ile giriş yapmayı seçerseniz Google'dan yalnızca adınız ve e-posta adresiniz alınır. Verileriniz reklam amacıyla üçüncü taraflara satılmaz."
+    },
+    "privacyCookies": {
+      "heading": "9. Çerezler ve Yerel Depolama",
+      "body": "Oturumunuzun açık kalması için zorunlu bir oturum çerezi kullanılır. Dil ve tema tercihiniz tarayıcınızın yerel depolamasında saklanır. Reklam veya takip amaçlı üçüncü taraf çerezi kullanılmaz."
+    },
+    "privacyRetention": {
+      "heading": "10. Saklama Süresi ve Silme",
+      "body": "Verileriniz hesabınız aktif olduğu sürece ve değerlendirme sonrasında 2 yıl boyunca saklanır. Hesabınızı sildiğinizde ad ve e-posta bilgileriniz ile birlikte mülakatlarınız, raporlarınız ve ön değerlendirme kayıtlarınız da kalıcı olarak silinir; bu işlem geri alınamaz."
+    },
+    "changes": {
+      "heading": "11. Değişiklikler",
+      "body": "Bu metin zaman zaman güncellenebilir. Önemli bir değişiklik olduğunda uygulama içinde bilgilendirilirsiniz."
+    },
+    "contact": {
+      "heading": "12. İletişim",
+      "body": "Şartlar veya gizlilikle ilgili sorularınızı support@smart-interview.me adresine iletebilirsiniz."
+    }
+  }
+}

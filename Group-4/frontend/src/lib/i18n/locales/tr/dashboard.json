@@ -1,0 +1,27 @@
+{
+  "greeting": "Merhaba, {{name}}",
+  "greetingFallback": "Panelin",
+  "subtitle": "",
+  "startInterview": "Yeni görüşme",
+  "preAssessment": {
+    "readyMessage": "Ön değerlendirme raporun hazır soruların bu profile göre kişiselleşir.",
+    "missingMessage": "Henüz bir ön değerlendirmen yok. Birkaç soruyla profilini çıkaralım, görüşmelerin sana göre hazırlansın.",
+    "viewReport": "Ön değerlendirme raporunu gör",
+    "fillIn": "Ön değerlendirmeyi doldur"
+  },
+  "empty": {
+    "title": "Henüz bir görüşmen yok",
+    "description": "İlk görüşmeni başlatmak 1 dakikadan kısa sürer."
+  },
+  "stats": {
+    "total": "Toplam görüşme",
+    "completed": "Tamamlandı",
+    "inProgress": "Yarım kaldı",
+    "reportReady": "Rapor hazır"
+  },
+  "recent": {
+    "heading": "Son görüşmelerin",
+    "viewAll": "Tümünü gör →"
+  },
+  "loadFailed": "Panel yüklenemedi"
+}
