@@ -76,5 +76,24 @@ describe('validateEnv — guvenlik alanlari', () => {
         /TRUST_PROXY/,
       );
     });
+
+    // S2: uretimde varsayilana dusmek sessiz bir arizadir — ters vekil
+    // arkasinda IP kovasi tum kullanicilar icin tek kovaya doner.
+    it('NODE_ENV=production iken TRUST_PROXY tanimsizsa REDDEDILIR', () => {
+      expect(() =>
+        validateEnv({ ...base, NODE_ENV: 'production' }),
+      ).toThrow(/TRUST_PROXY/);
+    });
+
+    it('uretimde acikca 0 yazmak gecerlidir (vekil yok karari)', () => {
+      expect(
+        validateEnv({ ...base, NODE_ENV: 'production', TRUST_PROXY: '0' })
+          .TRUST_PROXY,
+      ).toBe(0);
+    });
+
+    it('uretim disinda tanimsiz TRUST_PROXY hata vermez', () => {
+      expect(validateEnv({ ...base, NODE_ENV: 'test' }).TRUST_PROXY).toBe(0);
+    });
   });
 });

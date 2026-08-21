@@ -44,6 +44,9 @@ export const envSchema = z
       .int()
       .min(0, 'TRUST_PROXY 0 veya daha buyuk bir tamsayi olmalidir')
       .default(0),
+    // Yalnizca uretime ozel dogrulamalari acmak icin okunur (asagidaki
+    // TRUST_PROXY kontrolu). Uygulamanin geri kalani ortami buradan sormaz.
+    NODE_ENV: z.string().optional(),
     MAIL_TRANSPORT: z.enum(['console', 'resend']).default('console'),
     MAIL_FROM: z.string().optional().default('no-reply@example.com'),
     RESEND_API_KEY: z.string().optional().default(''),
@@ -122,5 +125,26 @@ export function validateEnv(config: Record<string, unknown>): Env {
       .join('; ');
     throw new Error(`Ortam degisken dogrulamasi basarisiz: ${message}`);
   }
+
+  // docs/SECURITY.md S11 (bulgu S2): varsayilan 0 GELISTIRME icin dogrudur ama
+  // uretimde SESSIZ bir arizadir. Ters vekil arkasinda TRUST_PROXY=0 iken
+  // `req.ip` daima vekilin IP'sidir; IP basina calisan `default` kovasi (300/60sn)
+  // TUM kullanicilar icin TEK ortak kovaya doner ve normal trafikte bile 429
+  // uretir. Yanlis yonde de bozulabilir: vekil sayisi fazla verilirse istemcinin
+  // gonderdigi X-Forwarded-For'a guvenilir ve sinir tamamen atlatilir.
+  //
+  // Bu yuzden uretimde deger ACIKCA yazilmalidir. Degerin kendisi serbest
+  // (vekil yoksa `TRUST_PROXY=0` yazmak gecerli bir cevaptir) — istenen tek sey,
+  // kararin varsayilana birakilmamis olmasidir.
+  if (
+    parsed.data.NODE_ENV === 'production' &&
+    config.TRUST_PROXY === undefined
+  ) {
+    throw new Error(
+      'Ortam degisken dogrulamasi basarisiz: TRUST_PROXY uretimde acikca ' +
+        'ayarlanmalidir (vekil yoksa 0, Render/Fly/nginx arkasinda tipik olarak 1)',
+    );
+  }
+
   return parsed.data;
 }
