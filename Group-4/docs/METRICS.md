@@ -228,6 +228,40 @@ npm run start:dev 2>&1 | grep "\[timing\]" > timing.log
 6 birim testi bu sözleşmeyi korur (`test/unit/request-timing.spec.ts`):
 route şablonu yazılması, hata yolunda ölçüm, yanıtın değiştirilmemesi.
 
+### 1.4b Hız sınırına takılmalar — yeni ölçüm noktası (2026-08-21)
+
+**Ne ölçülüyor?** Kaç isteğin 429 aldığı; hangi kovada (`llm` = kullanıcı
+başına saatlik LLM kotası, `default` = IP başına genel emniyet freni), hangi
+uç noktada ve hangi kullanıcıda. **Neden?** Limitler bugüne kadar ölçüm
+olmadan seçildi: "kullanıcılar gerçekten takılıyor mu, hangi uçta, ne
+sıklıkla" sorusunun hiçbir cevabı yoktu. Limit ayarlamak için önce veri
+gerekir.
+
+`throttle-response.ts` › `logThrottled`, 1.4 ile **aynı deseni** kullanır —
+sabit, ayrıştırılabilir tek satır:
+
+```
+[ratelimit] llm POST /api/interviews/:id/answers limit=60 user=abc123 retryAfter=3600s
+```
+
+- Ham URL değil **route şablonu** (id başına ayrı satır olmaz).
+- **Ham IP yazılmaz** (`docs/SECURITY.md` S8 — loglarda kişisel veri). IP
+  kovasına takılan istekler `user=yok` görünür; sayım yine doğrudur.
+- Aynı satırdaki `retryAfter`, istemciye giden **`Retry-After` başlığıyla** aynı değerdir — yani istemcinin ne beklediğini log üzerinden
+  doğrulayabilirsiniz.
+
+```bash
+# En çok hangi uç nokta 429 üretiyor?
+grep "\[ratelimit\]" server.log | awk '{print $2, $3, $4}' | sort | uniq -c | sort -rn
+
+# Aynı kullanıcı tekrar tekrar mı takılıyor (gerçek darboğaz), yoksa
+# çok sayıda farklı kullanıcı bir kez mi (limit fazla dar)?
+grep "\[ratelimit\]" server.log | grep -o "user=[^ ]*" | sort | uniq -c | sort -rn
+```
+
+6 birim testi bu sözleşmeyi korur (`test/unit/throttle-response.spec.ts`):
+yukarı yuvarlama, alt sınır 1 sn, route şablonu ve ham IP'nin yazılmaması.
+
 ### 1.5 Halihazırda var olan performans/dayanıklılık kararları
 
 Bunlar bu çalışmada eklenmedi, önceden vardı ve gerekçeleri kodda yazılı:

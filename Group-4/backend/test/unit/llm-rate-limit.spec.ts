@@ -11,15 +11,26 @@ describe('LlmRateLimitGuard', () => {
   let storage: ThrottlerStorageService;
   let guard: LlmRateLimitGuard;
 
+  // Sahte yanit `setHeader` de tasir: guard 429'da `Retry-After` yazar
+  // (throttle-response.ts). Eksik birakilirsa test gercek davranisi degil
+  // sahtenin eksigini olcer.
   function contextFor(userId: string): ExecutionContext {
-    const req = { user: { id: userId }, ip: '203.0.113.7', headers: {} };
-    const res = { header: jest.fn() };
+    const req = {
+      user: { id: userId },
+      ip: '203.0.113.7',
+      headers: {},
+      method: 'POST',
+      path: '/api/interviews',
+    };
+    const res = { header: jest.fn(), setHeader: jest.fn(), headersSent: false };
     const handler = function endpoint() {};
     return {
       switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }),
       getHandler: () => handler,
       getClass: () => class Ctrl {},
       getType: () => 'http',
+      // Testin `res`e ulasabilmesi icin (Retry-After dogrulamasi).
+      __res: res,
     } as unknown as ExecutionContext;
   }
 
@@ -66,6 +77,14 @@ describe('LlmRateLimitGuard', () => {
     expect(typeof body.message).toBe('string');
     expect(body.details.retryAfterSeconds).toBeGreaterThan(0);
     expect(body.details.retryAfterSeconds).toBeLessThanOrEqual(TTL_MS / 1000);
+
+    // Ayni sure STANDART baslikta da bulunur (RFC 9110 §10.2.3): istemci
+    // kutuphaneleri ve vekiller govdeyi degil bunu okur.
+    const res = (ctx as unknown as { __res: { setHeader: jest.Mock } }).__res;
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Retry-After',
+      String(Math.ceil(body.details.retryAfterSeconds)),
+    );
   });
 
   it('sayac basarili + basarisiz cagrilari birlikte sayar', async () => {
@@ -91,8 +110,17 @@ describe('LlmRateLimitGuard', () => {
   it('oturum yoksa IP ye duser (guard tek basina 401 uretmez)', async () => {
     const anon = {
       switchToHttp: () => ({
-        getRequest: () => ({ ip: '198.51.100.9', headers: {} }),
-        getResponse: () => ({ header: jest.fn() }),
+        getRequest: () => ({
+          ip: '198.51.100.9',
+          headers: {},
+          method: 'POST',
+          path: '/api/interviews',
+        }),
+        getResponse: () => ({
+          header: jest.fn(),
+          setHeader: jest.fn(),
+          headersSent: false,
+        }),
       }),
       getHandler: () => function h() {},
       getClass: () => class C {},

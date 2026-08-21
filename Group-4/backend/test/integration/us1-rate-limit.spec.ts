@@ -49,6 +49,15 @@ describe('POST /api/interviews (US1 hiz siniri)', () => {
     expect(results[3].status).toBe(429);
     expect(results[3].body.details.retryAfterSeconds).toBeGreaterThan(0);
 
+    // S4: sure govdenin yani sira STANDART basligta da bulunur — istemci
+    // kutuphaneleri, vekiller ve izleme araclari govdeyi degil bunu okur.
+    // Tam saniye olmali (RFC 9110 §10.2.3) ve govdedeki degerle ortusmeli.
+    const retryAfter = results[3].headers['retry-after'];
+    expect(retryAfter).toMatch(/^\d+$/);
+    expect(Number(retryAfter)).toBeGreaterThanOrEqual(
+      Math.floor(results[3].body.details.retryAfterSeconds as number),
+    );
+
     const count = await ctx.prisma.interview.count({
       where: { user: { email } },
     });

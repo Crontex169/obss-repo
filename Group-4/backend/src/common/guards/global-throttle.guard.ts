@@ -3,8 +3,13 @@
 // versiyonunu kullanır çünkü aksi hâlde bu guard, LLM uç noktalarındaki
 // kullanıcı-bazlı kotayı da yanlışlıkla IP-bazlı uygulardı — burada bilerek
 // yalnızca "default" kovaya bakıyor, LLM kovasına karışmıyor.
-import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard, type ThrottlerRequest } from '@nestjs/throttler';
+import { Injectable, type ExecutionContext } from '@nestjs/common';
+import {
+  ThrottlerGuard,
+  type ThrottlerLimitDetail,
+  type ThrottlerRequest,
+} from '@nestjs/throttler';
+import { logThrottled, setRetryAfter } from './throttle-response';
 
 
 //Tüm uç noktalarda geçerli, IP başına kaba bir emniyet freni (300 istek/60 sn gibi). 
@@ -37,5 +42,19 @@ export class GlobalThrottleGuard extends ThrottlerGuard {
       return true; // bu kova baska bir guard'in sorumlulugunda
     }
     return super.handleRequest(requestProps);
+  }
+
+  // Retry-After (2026-08-21): emniyet freni 429'u da `Retry-After` tasir. Govde kutuphanenin
+  // varsayilani olarak kalir (bu kova kullaniciya degil kotuye kullanima
+  // bakar); degisen yalnizca istemcinin ne zaman tekrar deneyecegini
+  // standart yerden okuyabilmesidir.
+  // eslint-disable-next-line @typescript-eslint/require-await
+  protected async throwThrottlingException(
+    context: ExecutionContext,
+    detail: ThrottlerLimitDetail,
+  ): Promise<void> {
+    setRetryAfter(context, detail.timeToBlockExpire);
+    logThrottled(context, 'default', detail.limit, detail.timeToBlockExpire);
+    return super.throwThrottlingException(context, detail);
   }
 }

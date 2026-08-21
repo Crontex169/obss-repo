@@ -10,6 +10,7 @@ import {
   type ThrottlerRequest,
   seconds,
 } from '@nestjs/throttler';
+import { logThrottled, setRetryAfter } from './throttle-response';
 
 
 
@@ -56,9 +57,20 @@ export class LlmRateLimitGuard extends ThrottlerGuard {
 
   // eslint-disable-next-line @typescript-eslint/require-await
   protected async throwThrottlingException(
-    _context: ExecutionContext,
+    context: ExecutionContext,
     detail: ThrottlerLimitDetail,
   ): Promise<void> {
+    // Retry-After (2026-08-21): sure govdede `details.retryAfterSeconds` olarak zaten vardi ama
+    // STANDART yerinde degildi. `Retry-After` (RFC 9110 §10.2.3) 429'un
+    // beklenen basligidir: tarayici/istemci kutuphaneleri, vekiller ve
+    // izleme araclari govdeyi degil bunu okur. Ikisi ayni degeri tasir.
+    setRetryAfter(context, detail.timeToBlockExpire);
+    logThrottled(
+      context,
+      LLM_THROTTLER_NAME,
+      detail.limit,
+      detail.timeToBlockExpire,
+    );
     throw new HttpException(
       {
         message:
