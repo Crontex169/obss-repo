@@ -71,15 +71,30 @@ describe('saglayici sema iletim bicimi', () => {
     }
   });
 
-  it('maliyet: groq gpt-oss-120b liste fiyati, deepseek ADR-0007 birim fiyatlari', () => {
+  // Fiyatlar resmi sayfalardan dogrulanmis sabitlerdir (2026-08-21). Test
+  // rakamlari EZBERLEMEK icin degil, sessizce kaymalarini engellemek icin var:
+  // fiyat guncellenirken bu satir da guncellenmek zorunda kalir.
+  it('maliyet: her iki saglayicinin liste + onbellek fiyatlari sabitlenmistir', () => {
     expect(groq.pricing).toEqual({
       inputPerMillionUsd: 0.15,
       outputPerMillionUsd: 0.75,
+      cachedInputPerMillionUsd: 0.075, // %50 indirim (console.groq.com/docs/prompt-caching)
     });
     expect(deepseek.pricing).toEqual({
-      inputPerMillionUsd: 0.14,
-      outputPerMillionUsd: 0.28,
+      inputPerMillionUsd: 0.44, // V4 Flash zirve tarifesi; zirve disi yarisi
+      outputPerMillionUsd: 1.32,
+      cachedInputPerMillionUsd: 0.014,
     });
+  });
+
+  // Onbellekli girdi HER ZAMAN normal girdiden ucuz olmalidir; tersi bir deger
+  // yazilirsa "indirim" maliyeti artirirdi ve kimse fark etmezdi.
+  it('onbellekli girdi fiyati normal girdiden dusuktur', () => {
+    for (const config of [groq, deepseek]) {
+      expect(config.pricing.cachedInputPerMillionUsd).toBeLessThan(
+        config.pricing.inputPerMillionUsd,
+      );
+    }
   });
 
   it('model ve baseUrl yapilandirmadan gelir — kodda gomulu degil', () => {

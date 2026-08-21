@@ -202,6 +202,7 @@ export class LlmService {
       model: result?.model ?? config.model,
       inputTokens: result?.inputTokens ?? 0,
       outputTokens: result?.outputTokens ?? 0,
+      cachedInputTokens: result?.cachedInputTokens ?? 0,
       succeeded,
       durationMs,
       pricing: config.pricing,

@@ -351,6 +351,10 @@ model TokenUsage {
   model            String
   inputTokens      Int
   outputTokens     Int
+  // inputTokens'in saglayici prompt cache'inden karsilanan kismi (ALT KUME,
+  // inputTokens'a eklenmez). Prompt caching tasarrufunun tek olcum kaynagi;
+  // ayrica maliyet hesabinda indirimli fiyatlanir (provider.config.ts).
+  cachedInputTokens Int         @default(0)
   estimatedCostUsd Decimal      @db.Decimal(10, 6)
   succeeded        Boolean
   // Saglayici cagrisinin duvar saati suresi (ms). Nullable: bu kolon eklenmeden

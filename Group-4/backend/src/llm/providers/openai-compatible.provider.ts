@@ -118,8 +118,28 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       content: completion.choices[0]?.message?.content ?? '',
       inputTokens: completion.usage?.prompt_tokens ?? 0,
       outputTokens: completion.usage?.completion_tokens ?? 0,
+      cachedInputTokens: cachedInputTokensOf(completion.usage),
       provider: this.config.name,
       model: this.config.model,
     };
   }
+}
+
+// Prompt cache olcumu — iki saglayici AYNI bilgiyi FARKLI alanda verir ve
+// ikisi de OpenAI SDK tipinde tanimli degil (DeepSeek uzantisi / opsiyonel
+// detay nesnesi), bu yuzden okuma tek yerde ve savunmaci yapilir:
+//   DeepSeek: usage.prompt_cache_hit_tokens
+//   OpenAI/Groq: usage.prompt_tokens_details.cached_tokens
+// Ikisi de yoksa 0 — "olcemedik" ile "onbellek yok" ayni sekilde kaydedilir,
+// maliyet hesabi bu durumda tam fiyata duser (fazla tahmin, eksik degil).
+export function cachedInputTokensOf(usage: unknown): number {
+  const raw = usage as
+    | {
+        prompt_cache_hit_tokens?: number;
+        prompt_tokens_details?: { cached_tokens?: number };
+      }
+    | undefined;
+  const value =
+    raw?.prompt_cache_hit_tokens ?? raw?.prompt_tokens_details?.cached_tokens;
+  return typeof value === 'number' && value > 0 ? value : 0;
 }

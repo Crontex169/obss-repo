@@ -34,6 +34,17 @@ export interface LlmCallResult {
   content: string;
   inputTokens: number;
   outputTokens: number;
+  /**
+   * inputTokens'in saglayici onbelleginden (prompt caching) KARSILANAN kismi.
+   * ALT KUMEDIR, inputTokens'a EKLENMEZ. Saglayici bildirmezse 0.
+   *
+   * Bizim prompt'umuz onbellege cok uygun: sistem talimati (DeepSeek yolunda
+   * artı JSON semasi) her cagrida byte-byte ayni onektir, degisen yalnizca
+   * sondaki kullanici verisidir. Saglayici bu oneki kendiliginden onbellekler
+   * ve ucuz fiyatlar; olculmezse hem tasarruf gorunmez hem maliyet raporu
+   * oldugundan yuksek cikar.
+   */
+  cachedInputTokens: number;
   provider: string;
   model: string;
 }

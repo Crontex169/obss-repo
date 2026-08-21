@@ -25,6 +25,18 @@ export interface ProviderPricing {
    */
   inputPerMillionUsd: number;
   outputPerMillionUsd: number;
+  /**
+   * Saglayici onbelleginden karsilanan girdi tokeninin 1M basina USD fiyati
+   * (prompt caching indirimi). Tanimsiz = "indirim bilinmiyor": onbellekli
+   * token da tam girdi fiyatindan hesaplanir, yani maliyet OLDUGUNDAN YUKSEK
+   * cikar, asla dusuk cikmaz.
+   *
+   * Her iki saglayici icin de resmi fiyat sayfasindan dogrulanarak dolduruldu
+   * (2026-08-21, asagidaki PRICING sabitine bakin). Yeni bir saglayici
+   * eklenirken tahmini rakam YAZILMAZ: bilinmiyorsa bos birakilir, cunku
+   * uydurulan bir indirim admin panelindeki tutari sessizce yanlis gosterir.
+   */
+  cachedInputPerMillionUsd?: number;
 }
 
 export interface ProviderConfig {
@@ -51,14 +63,39 @@ const SCHEMA_DELIVERY: Record<ProviderName, SchemaDelivery> = {
 };
 
 // ADR-0007 (fiyat notu): LISTE fiyatlari per 1M token.
-// - Groq gpt-oss-120b: $0.15 girdi / $0.75 cikti (ucretsiz katmanda gercek
-//   harcama $0'dir; bu rakam FR-010 maliyet raporlamasinin anlamli olmasi
-//   icin liste fiyatidir).
-// - DeepSeek V4 Flash: $0.14 girdi / $0.28 cikti.
+// Kaynaklar resmi fiyat sayfalarindan dogrulandi (2026-08-21):
+//   console.groq.com/docs/prompt-caching · api-docs.deepseek.com/quick_start/pricing
+//
+// - Groq gpt-oss-120b: $0.15 girdi / $0.75 cikti; onbellekten karsilanan girdi
+//   %50 indirimli -> $0.075. (Ucretsiz katmanda gercek harcama $0'dir; bu rakam
+//   FR-010 maliyet raporlamasinin anlamli olmasi icin liste fiyatidir.)
+//
+// - DeepSeek V4 Flash: eski $0.14/$0.28 rakamlari ARTIK GECERSIZ. Saglayici
+//   2026-08-16'da zirve/zirve-disi fiyatlandirmaya gecti (zirve: 01:00-04:00 ve
+//   06:00-10:00 UTC; zirve disi tam yarisi):
+//       cache miss girdi  $0.44 zirve / $0.22 zirve disi
+//       cache hit  girdi  $0.014 zirve / $0.007 zirve disi
+//       cikti             $1.32 zirve / $0.66 zirve disi
+//   Burada ZIRVE fiyati tutulur: tek sabit iki tarifeyi ayni anda dogru
+//   gosteremez, ve bu dosyanin kurali maliyetin olabildigince yuksek gorunmesi
+//   (asla dusuk cikmamasi) yonundedir. Zirve disinde tahmin gercek tutarin iki
+//   kati cikar.
+//   ponytail: saatten bagimsiz tek tarife. DeepSeek YEDEK saglayicidir
+//   (LLM_ALT_*, varsayilan olarak kapali), yani bu sapma nadir yolda olusur.
+//   Birincil saglayici yapilirsa cozum, UTC saatine bakip zirve/zirve-disi
+//   secen bir fonksiyondur.
 // Iki saglayici, iki sabit -> ayri bir pricing.ts dosyasi gerekmez.
 const PRICING: Record<ProviderName, ProviderPricing> = {
-  groq: { inputPerMillionUsd: 0.15, outputPerMillionUsd: 0.75 },
-  deepseek: { inputPerMillionUsd: 0.14, outputPerMillionUsd: 0.28 },
+  groq: {
+    inputPerMillionUsd: 0.15,
+    outputPerMillionUsd: 0.75,
+    cachedInputPerMillionUsd: 0.075,
+  },
+  deepseek: {
+    inputPerMillionUsd: 0.44,
+    outputPerMillionUsd: 1.32,
+    cachedInputPerMillionUsd: 0.014,
+  },
 };
 
 // Deger OLCUMLE secildi (2026-08-10, deepseek-v4-flash, TokenUsage kayitlari):
@@ -97,13 +134,26 @@ export function buildProviderConfig(env: LlmEnv): ProviderConfig {
   };
 }
 
+// cachedInputTokens, inputTokens'in ALT KUMESIDIR (saglayici prompt_tokens'i
+// onbellekli + onbelleksiz TOPLAMI olarak bildirir). Bu yuzden once ayrilir:
+// onbellekten gelen kisim indirimli, kalani tam fiyattan hesaplanir. Ayrilma
+// yapilmazsa ayni token iki kez faturalanmis gorunur.
 export function estimateCostUsd(
   pricing: ProviderPricing,
   inputTokens: number,
   outputTokens: number,
+  cachedInputTokens = 0,
 ): number {
+  // Savunma: saglayici tutarsiz sayi bildirirse (cached > input) negatif
+  // fiyatlandirilmis token uretmeyelim.
+  const cached = Math.min(Math.max(cachedInputTokens, 0), inputTokens);
+  const uncached = inputTokens - cached;
+  const cachedPrice =
+    pricing.cachedInputPerMillionUsd ?? pricing.inputPerMillionUsd;
+
   return (
-    (inputTokens * pricing.inputPerMillionUsd) / 1_000_000 +
+    (uncached * pricing.inputPerMillionUsd) / 1_000_000 +
+    (cached * cachedPrice) / 1_000_000 +
     (outputTokens * pricing.outputPerMillionUsd) / 1_000_000
   );
 }

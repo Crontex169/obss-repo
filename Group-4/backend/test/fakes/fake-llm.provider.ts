@@ -18,6 +18,8 @@ export interface FakeLlmScenario {
   delayMs?: number;
   inputTokens?: number;
   outputTokens?: number;
+  /** Saglayici prompt cache isabeti (inputTokens'in alt kumesi). */
+  cachedInputTokens?: number;
   /** Saglayici usage dondurmedi senaryosu. */
   omitUsage?: boolean;
 }
@@ -66,6 +68,9 @@ export class FakeLlmProvider implements LlmProvider {
       content: scenario.rawContent ?? JSON.stringify(scenario.content ?? {}),
       inputTokens: scenario.omitUsage ? 0 : (scenario.inputTokens ?? 100),
       outputTokens: scenario.omitUsage ? 0 : (scenario.outputTokens ?? 250),
+      cachedInputTokens: scenario.omitUsage
+        ? 0
+        : (scenario.cachedInputTokens ?? 0),
       provider: this.provider,
       model: this.model,
     };

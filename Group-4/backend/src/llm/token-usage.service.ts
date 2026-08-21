@@ -22,6 +22,8 @@ export interface TokenUsageEntry {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** inputTokens'in saglayici onbelleginden gelen kismi (alt kume). */
+  cachedInputTokens?: number;
   succeeded: boolean;
   /** Saglayici cagrisinin duvar saati suresi (ms); olculemezse undefined. */
   durationMs?: number;
@@ -37,7 +39,8 @@ export class TokenUsageService {
   // Basarisiz cagrilarda da yazilir (succeeded: false) — saglayici token
   // tuketmis olabilir, maliyet takibinde bosluk olusmaz.
   async record(entry: TokenUsageEntry): Promise<void> {
-    const { pricing, inputTokens, outputTokens, ...rest } = entry;
+    const { pricing, inputTokens, outputTokens, cachedInputTokens, ...rest } =
+      entry;
     try {
       await this.prisma.tokenUsage.create({
         data: {
@@ -45,10 +48,14 @@ export class TokenUsageService {
           // Saglayici usage dondurmediyse 0 yazilir; kayit yine olusur.
           inputTokens: inputTokens || 0,
           outputTokens: outputTokens || 0,
+          // Onbellekten karsilanan girdi AYRICA saklanir: maliyetin ne kadari
+          // prompt caching sayesinde dusmus, yalnizca bu kolonla olculebilir.
+          cachedInputTokens: cachedInputTokens || 0,
           estimatedCostUsd: estimateCostUsd(
             pricing,
             inputTokens || 0,
             outputTokens || 0,
+            cachedInputTokens || 0,
           ),
         },
       });
