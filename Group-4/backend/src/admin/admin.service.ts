@@ -46,9 +46,40 @@ export function resolvePositionLabel(position: string | null): string {
 // 005-admin: SALT-OKUNUR servis. Bu sinifta hicbir write metodu (create/update/
 // delete) tanimlanmaz — FR-008 garantisi, route yoklugunun yaninda burada da
 // korunur.
+// PERF (C2): /api/admin/stats her cagrida DORT sorgu kosar ve bunlarin ikisi
+// SATIRLARI CEKIP uygulama katmaninda toplar (tamamlanmis tum gorusmeler +
+// cevap zaman damgalari; penceredeki tum TokenUsage satirlari). Panel her
+// acilista, her sekme degisiminde, her F5'te bunu tekrar odetiyordu.
+//
+// Istatistik SANIYE SANIYE taze olmak zorunda degil: kisa omurlu bir onbellek
+// ard arda gelen istekleri tek hesaba indirir. Pencere (tokenWindowDays)
+// anahtarin parcasidir; 7 gunluk gorunum 30 gunlugun yanitini almaz.
+//
+// ponytail: surec-ici Map + TTL. Redis/cache-manager DEGIL — tek deger, tek
+// tuketici, iptal gerektirmiyor (veri kendiliginden eskiyor). Cok-instance'ta
+// her process kendi kopyasini tutar; sonuc yanlis olmaz, yalnizca tazelik
+// instance'a gore en fazla TTL kadar oynar. Redis'e gecilirse (S1) buraya da
+// paylasilan store konulabilir.
+// Cagri basina okunur (modul yuklenirken degil): tek bir Number() parse'i
+// yaninda dort sorgu duruyor, olculebilir bir maliyeti yok — karsiliginda
+// deger testte ve calisirken modul yeniden yuklenmeden degistirilebilir.
+// 0 = onbellek kapali.
+function statsCacheTtlMs(): number {
+  return Number(process.env.ADMIN_STATS_CACHE_TTL_MS ?? 30_000);
+}
+
+// 005-admin: SALT-OKUNUR servis (devam) — onbellek de yalnizca OKUMA yolundadir.
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // Anahtar: pencere gun sayisi. Deger: hesaplanmis yanit + yazildigi an.
+  // Yanit salt-okunur olarak paylasilir (istemciye serilestirilir, mutasyona
+  // ugramaz), bu yuzden kopyalanmaz.
+  private readonly statsCache = new Map<
+    number,
+    { at: number; value: AdminStatsResponse }
+  >();
 
   // contracts/admin-api.md §1 (FR-002, FR-003, FR-004, FR-014).
   // deletedAt HICBIR ZAMAN filtrelenmez; kullanici ayrimi YOKTUR.
@@ -207,6 +238,14 @@ export class AdminService {
   // TUM toplamlara soft-delete edilmis gorusmeler DAHILDIR (Clarifications Q1)
   // — hicbir sorguda deletedAt filtresi yoktur, tam denetim seffafligi.
   async getStats(query: StatsQuery): Promise<AdminStatsResponse> {
+    // TTL 0 = onbellek kapali (entegrasyon testleri boyle kosar: ayni process
+    // icinde veri yazip hemen istatistik okuyan senaryolar bayat yanit almasin).
+    const ttlMs = statsCacheTtlMs();
+    const cached = this.statsCache.get(query.tokenWindowDays);
+    if (ttlMs > 0 && cached && Date.now() - cached.at < ttlMs) {
+      return cached.value;
+    }
+
     const windowStart = startOfUtcDay(
       new Date(Date.now() - (query.tokenWindowDays - 1) * DAY_MS),
     );
@@ -270,7 +309,7 @@ export class AdminService {
 
     const dailyTokenUsage = buildDailySeries(tokenRows, query.tokenWindowDays);
 
-    return {
+    const response: AdminStatsResponse = {
       countsByProfession: professionGroups.map((g) => ({
         position: g.position,
         label: resolvePositionLabel(g.position),
@@ -286,6 +325,15 @@ export class AdminService {
       // tek dogruluk kaynagi; istemci ayrica toplamak zorunda kalmaz.
       totalCostUsd: sumCostStrings(dailyTokenUsage.map((d) => d.estimatedCostUsd)),
     };
+
+    if (ttlMs > 0) {
+      // Anahtar sayisi sinirli (tokenWindowDays 1-90), sinirsiz buyume yok.
+      this.statsCache.set(query.tokenWindowDays, {
+        at: Date.now(),
+        value: response,
+      });
+    }
+    return response;
   }
   // "Bildir" (interview-card ucgen menu) kayitlari — salt-okunur, en yeniden
   // eskiye. Sahiplik/silinmis filtresi yok: admin her kaydi gorur (R3 ile ayni ilke).
