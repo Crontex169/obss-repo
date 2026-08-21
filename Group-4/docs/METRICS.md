@@ -151,6 +151,46 @@ SELECT operation, count(*), round(avg("durationMs")) AS ort_ms,
 FROM "TokenUsage" WHERE "durationMs" IS NOT NULL GROUP BY operation;
 ```
 
+### 1.3b Prompt cache isabeti — yeni ölçüm noktası (2026-08-19)
+
+**Ne ölçülüyor?** Bir LLM çağrısının girdi tokenlarının ne kadarının
+sağlayıcının **prompt cache**'inden karşılandığı. Bizim istemimiz buna çok
+uygun: sistem talimatı (DeepSeek yolunda ayrıca JSON şeması) her çağrıda
+byte-byte aynı önektir, değişen yalnızca sondaki kullanıcı verisidir.
+
+**Nasıl ölçülüyor?** İki sağlayıcı aynı bilgiyi farklı alanda döndürür —
+DeepSeek `usage.prompt_cache_hit_tokens`, OpenAI/Groq
+`usage.prompt_tokens_details.cached_tokens`. Okuma tek yerde toplanmıştır
+(`openai-compatible.provider.ts` › `cachedInputTokensOf`) ve
+`TokenUsage.cachedInputTokens` sütununa yazılır (migration
+`20260819120000_add_token_usage_cached_input`).
+
+- Değer `inputTokens`'ın **alt kümesidir**, ona eklenmez.
+- Alan yoksa `0` yazılır ve maliyet tam girdi fiyatından hesaplanır — tahmin
+  yukarı yönde şaşar, aşağı yönde asla.
+- Maliyet indirimi `ProviderPricing.cachedInputPerMillionUsd` üzerinden
+  uygulanır. **Güncelleme (2026-08-21):** iki sağlayıcının da fiyatı resmî
+  sayfadan doğrulanıp dolduruldu:
+  - **Groq** (gpt-oss-120b): cache-hit girdi %50 indirimli → `$0.075/M`
+    (liste `$0.15/M`).
+  - **DeepSeek V4 Flash**: cache-hit `$0.014/M`, cache-miss `$0.44/M`, çıktı
+    `$1.32/M`. Dosyadaki eski `$0.14 / $0.28` rakamları geçersizdi. Sağlayıcı
+    2026-08-16'da **zirve/zirve-dışı** tarifeye geçti (zirve 01:00–04:00 ve
+    06:00–10:00 UTC; zirve dışı tam yarısı); tek sabit ikisini birden doğru
+    gösteremediği için **zirve** tarifesi tutulur — tahmin yukarı şaşar,
+    aşağı asla. DeepSeek yedek sağlayıcıdır, bu sapma nadir yolda oluşur.
+  - Yeni bir sağlayıcı eklenirken alan boş bırakılabilir: boşsa önbellekli
+    token da tam fiyattan hesaplanır. Tahmini rakam **yazılmaz** — admin
+    panelindeki tutarı sessizce yanlış yapardı.
+
+```sql
+-- Prompt cache isabet orani (islem tipine gore)
+SELECT operation, sum("inputTokens") AS girdi,
+       sum("cachedInputTokens") AS onbellekten,
+       round(100.0 * sum("cachedInputTokens") / nullif(sum("inputTokens"), 0), 1) AS isabet_yuzde
+FROM "TokenUsage" GROUP BY operation;
+```
+
 ### 1.4 HTTP endpoint süreleri — yeni ölçüm noktası
 
 **Ne ölçülüyor?** Backend'e gelen her API isteğinin (örn. `GET

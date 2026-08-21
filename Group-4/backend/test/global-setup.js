@@ -10,6 +10,17 @@ const { execSync } = require('child_process');
 module.exports = async function globalSetup() {
   dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+  // C2: /api/admin/stats onbellegi entegrasyon testlerinde KAPALI. Testler
+  // ayni process icinde once veri yazip hemen istatistik okur; 30 sn'lik
+  // taze-olmayan yanit orada gercek bir hata degil, olcum aracinin kendisi olurdu.
+  process.env.ADMIN_STATS_CACHE_TTL_MS = '0';
+
+  // C4: LinkedIn ilan onbellegi de entegrasyon testlerinde KAPALI. us1-create-url
+  // testleri AYNI ilan ID'sini farkli taklit yanitlarla (200 / 404 / bozuk HTML)
+  // arka arkaya kullanir; onbellek acikken ikinci senaryo hic fetch yapmaz ve
+  // test kendi kurdugu durumu degil oncekinin kalintisini olcerdi.
+  process.env.LINKEDIN_JOB_CACHE_TTL_MS = '0';
+
   const url = new URL(process.env.DATABASE_URL);
   url.searchParams.set('schema', 'test_e2e');
   process.env.DATABASE_URL = url.toString();

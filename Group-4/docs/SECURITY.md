@@ -357,6 +357,14 @@ kullanır — bu anahtar tüm kullanıcılar için tek ortak kovaya dönüşür.
 **Düzeltme.** Deployment topolojisi belirlendiğinde `app.set('trust proxy', 1)`
 (vekil sayısına göre). Topoloji kararına bağlı olduğu için Faz 2'ye alınmıştır.
 
+**Güncelleme (2026-08-19).** `TRUST_PROXY` eklendi ama varsayılanı `0`'dır ve
+üretimde yazılmazsa sessiz bir arıza bırakıyordu: ters vekil arkasında IP başına
+çalışan `default` kovası (300/60 sn) **tüm kullanıcılar için tek ortak kovaya**
+dönüşür — normal trafikte bile 429 üretir. Artık `NODE_ENV=production` iken
+`TRUST_PROXY` **açıkça** yazılmamışsa uygulama açılmaz (`env.validation.ts`).
+Değerin kendisi serbesttir: vekil yoksa `TRUST_PROXY=0` yazmak geçerli bir
+cevaptır — istenen tek şey kararın varsayılana bırakılmamasıdır.
+
 ---
 
 ### S12 — Hız sınırı sayaçları sınırsız büyüyor · **DÜŞÜK**
@@ -441,9 +449,22 @@ flowchart LR
 | Risk | Neden kabul edildi |
 |------|--------------------|
 | Kayıt akışında hesap varlığı ve sağlayıcı öğrenilebilir | Puanlanan kabul kriteri (DS-03-E1); kütle taraması hız sınırıyla pahalılaştırıldı — S7 |
+| Yüklenen PDF'ten çıkarılan metin ≤1 sa. süreç belleğinde tutulur | Çıkarım önbelleği (C5) anahtarı **içeriğin SHA-256'sı**dır: aynı anahtar ancak baytlar birebir aynıysa oluşur, dolayısıyla bir kullanıcının metnini başkasına döndürmesi mümkün değildir. Veri diske yazılmaz, süreç yeniden başlayınca kaybolur; kalıcı depolamadaki (`Interview.jobPostingText`) süre bundan zaten uzundur |
 | Hız sınırı sayaçları çok-örnekli dağıtımda paylaşılmaz | Tek-instance ölçek; Redis'e geçiş yolu `API_CONVENTIONS.md` §3.6'da kayıtlı |
 | `Origin` başlığı olmayan istek geçer | Tarayıcı dışı istemcilerde CSRF kavramı yoktur; zorunlu kılmak yalnızca meşru istemcileri kırardı — [ADR-0012](DECISIONS.md) |
 | Geliştirmede doğrulama bağlantısı konsola düz yazılır | Yalnızca `MAIL_TRANSPORT="console"` yolunda; üretimde o satırlara hiç ulaşılmaz — S8 |
+
+**Denenip geri alındı — oturum çerez önbelleği (2026-08-21).** Better Auth'un
+`session.cookieCache` ayarı, oturumu imzalı çerezde tutup her istekteki
+session+user sorgusunu kaldırıyordu. Performans kazancı gerçekti, ama önbellek
+DB'ye bakmadığı için **iptal ≤60 sn gecikiyordu** ve şu üç güvenlik iddiası
+düşüyordu: `us2-signout-error` (sign-out sonrası `get-session` → `null`),
+`us-reset-password-session-revoke` (şifre sıfırlama eski oturumu öldürür),
+`us6-session-expiry` (süresi dolmuş oturum korunan içeriğe giremez). Uçları
+seçmeli tutmak yetmedi: `/api/auth/*` SessionGuard'dan geçmiyor ve süre dolumu
+iş verisi GET'lerinde de görünmek zorunda. **Karar: oturum daima DB'den
+doğrulanır.** Oturum sorgusu darboğaz hâline gelirse doğru yol önbellek değil,
+iptali ANINDA gören paylaşımlı bir oturum deposudur (Redis).
 
 ---
 
@@ -532,7 +553,7 @@ S7/S10 blokları ve `src/common/log-redaction.spec.ts` altında.
 | S8 | `log-redaction.spec.ts` (5 test) | birim |
 | S9 | `env.validation.spec.ts` › S9 (4 test) | birim |
 | S10 | `security.spec.ts` › S10 + `us1-create-pdf.spec.ts` | entegrasyon |
-| S11 | `env.validation.spec.ts` › S11 | birim |
+| S11 | `env.validation.spec.ts` › S11 + S5/S11 (üretimde `TRUST_PROXY` zorunlu, 3 test) | birim |
 | S12 | `rate-limit.config.spec.ts` (2 test) | birim |
 
 S3 ayrı dosyadadır: test `default` kovasını bilerek tüketir ve aynı dosyadaki
