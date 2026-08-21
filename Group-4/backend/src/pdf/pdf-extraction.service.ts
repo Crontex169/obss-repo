@@ -4,9 +4,11 @@
 // olabilir), boyutunun sınırı aşmadığını kontrol eder ve çıkardığı metni
 // belli bir karakter sınırıyla keser (aksi hâlde dev bir PDF, LLM'e
 // gönderilecek metni aşırı şişirebilirdi).
+import { createHash } from 'node:crypto';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { extractText, getDocumentProxy } from 'unpdf';
+import { TtlCache } from '../common/ttl-cache';
 
 // PDF metin cikarma — FR-002. Somut kutuphane ADR-0009'a bagli; bu servis
 // SOZLESMEYI sabitler, kutuphane degisirse yalnizca extract() govdesi degisir.
@@ -67,6 +69,23 @@ export function resolveUploadHardLimitBytes(): number {
 // ust sinir uygulanir; 10 MB'lik bir PDF milyonlarca karakter tasiyabilir.
 const MAX_EXTRACTED_CHARS = 40_000;
 
+// C5 — ayni dosya iki kez ayristirilmaz.
+//
+// NEDEN: en sik tekrar eden girdi OZGECMIS. Kullanici her yeni gorusmede ayni
+// CV'yi yukler; PDF.js ayristirmasi saf JS'tir, yani sureyi Node'un TEK olay
+// dongusunden yer — o sirada diger istekler de bekler. Ayni baytlar icin bunu
+// tekrar odemek gereksiz.
+//
+// ANAHTAR ICERIGIN SHA-256'SI (dosya adi/kullanici degil): iki kullanici ayni
+// baytlari yuklerse cikan metin zaten AYNIDIR, yani icerik-adresli anahtar
+// capraz kullanici sizinti riski tasimaz. Dosya adiyla anahtarlansaydi
+// "ozgecmis.pdf" herkeste ayni anahtar olur ve BASKASININ metnini dondururdu.
+//
+// ponytail: sabit sure/tavan, env dugmesi yok. Tavan 50 kayit x <=40 KB metin
+// = birkac MB. Ayarlanabilirlik gerekirse env'e cikarilir.
+const EXTRACTION_CACHE_TTL_MS = 60 * 60 * 1000;
+const extractionCache = new TtlCache<string>(EXTRACTION_CACHE_TTL_MS, 50);
+
 export class PdfUnsupportedTypeError extends HttpException {
   constructor() {
     super(
@@ -121,6 +140,12 @@ export class PdfExtractionService {
     // icerigi ne olursa olsun "desteklenmeyen tur" degil.
     if (!hasPdfMagicBytes(buffer)) throw new PdfUnsupportedTypeError();
 
+    // Onbellek dogrulamalardan SONRA: gecersiz bir dosya once kendi hatasini
+    // almali, onbellekten gecerli bir metin degil.
+    const key = createHash('sha256').update(buffer).digest('hex');
+    const cached = extractionCache.get(key);
+    if (cached !== undefined) return cached;
+
     let text: string;
     try {
       const pdf = await getDocumentProxy(new Uint8Array(buffer));
@@ -133,6 +158,8 @@ export class PdfExtractionService {
     // Taranmis (goruntu) PDF: sayfa var ama metin katmani yok -> 422.
     if (normalized.length === 0) throw new PdfExtractionFailedError();
 
-    return normalized.slice(0, MAX_EXTRACTED_CHARS);
+    const result = normalized.slice(0, MAX_EXTRACTED_CHARS);
+    extractionCache.set(key, result);
+    return result;
   }
 }

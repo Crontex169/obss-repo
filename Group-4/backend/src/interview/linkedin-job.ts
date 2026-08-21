@@ -5,6 +5,8 @@
 // LinkedIn adresine eklenir. Hedefin tek degisken parcasi \d+ oldugundan
 // kullanici girdisi sema, host, port veya yolu etkileyemez.
 // BU TASARIM DEGISTIRILMEZ.
+import { TtlCache } from '../common/ttl-cache';
+
 export const JOB_ID = /linkedin\.com\/jobs\/view\/(?:[^/]*-)?(\d+)/;
 
 // Misafir ucu oturum/cerez istemez, yalnizca user-agent bekler. Sozlesmeye bagli
@@ -16,9 +18,31 @@ const GUEST_ENDPOINT =
 // yerine erken hata donulur. Yeniden deneme YOK (specs/009 §4).
 const TIMEOUT_MS = 10_000;
 
+// C4 — ayni ilan icin tekrar tekrar LinkedIn'e cikilmaz.
+//
+// NEDEN: ayni baglanti pratikte birden fazla kez cekilir (kullanici gorusmeyi
+// yeniden olusturur, ayni ilana birden fazla kisi calisir) ve her cekim
+// SOZLESMEYE BAGLI OLMAYAN bir misafir ucuna 10 sn'ye kadar bekleyen bir dis
+// istektir. Tekrari kesmek hem kullaniciyi bekletmez hem de o ucta gereksiz
+// yere gorunur olmamizi azaltir.
+//
+// Anahtar URL'nin tamami degil SAYISAL ID: ayni ilan farkli slug'larla gelir
+// ("...-at-acme-4447384933" / "...-4447384933"), ID zaten fetch'e giden tek
+// degisken parcadir (yukaridaki SSRF notu).
+//
+// YALNIZCA BASARILI cekim onbelleklenir — hata yolu `set`e hic ulasmaz, yani
+// gecici bir 5xx bir saat boyunca "bu ilan okunamiyor" haline gelmez.
+const CACHE_TTL_MS = Number(
+  process.env.LINKEDIN_JOB_CACHE_TTL_MS ?? 60 * 60 * 1000,
+);
+const cache = new TtlCache<string>(CACHE_TTL_MS, 200);
+
 export async function fetchLinkedInJob(url: string): Promise<string> {
   const id = JOB_ID.exec(url)?.[1];
   if (!id) throw new Error("Gecerli bir LinkedIn is ilani URL'si degil.");
+
+  const cached = cache.get(id);
+  if (cached !== undefined) return cached;
 
   let res: Response;
   try {
@@ -55,5 +79,7 @@ export async function fetchLinkedInJob(url: string): Promise<string> {
     .trim();
 
   if (text.length < 50) throw new Error('Ilan aciklamasi cok kisa.');
+
+  cache.set(id, text);
   return text;
 }
