@@ -42,6 +42,18 @@ export class LlmRateLimitGuard extends ThrottlerGuard {
     if (requestProps.throttler.name !== LLM_THROTTLER_NAME) {
       return true;
     }
+
+    // Kota iadesi (llm-quota-refund.interceptor.ts) icin sayac anahtarini
+    // istege iliştiririz. Anahtari BURADA uretmek onemlidir: bicimi
+    // kutuphanenin `generateKey`i belirler ve iade tarafinda yeniden
+    // uretilmeye calisilirsa iki yer sessizce ayrisabilir.
+    const { context, throttler, getTracker, generateKey } = requestProps;
+    const req = context
+      .switchToHttp()
+      .getRequest<Record<string, unknown> & { [LLM_QUOTA_KEY]?: string }>();
+    const tracker = await getTracker(req, context);
+    req[LLM_QUOTA_KEY] = generateKey(context, tracker, throttler.name!);
+
     return super.handleRequest(requestProps);
   }
 
@@ -84,6 +96,14 @@ export class LlmRateLimitGuard extends ThrottlerGuard {
 
 // Uc nokta basina kota. ttl her zaman 1 saat (3.5) — degisen yalnizca limit.
 export const LLM_THROTTLER_NAME = 'llm';
+
+/**
+ * Guard'in tukettigi sayac anahtarinin istek uzerinde tasindigi alan.
+ * `Symbol` bilerek: istek nesnesine eklenen bu alan bir uygulama verisi degil,
+ * iki katman arasindaki ic haberlesmedir — JSON'a sizmaz, baska bir alanla
+ * cakismaz.
+ */
+export const LLM_QUOTA_KEY = Symbol('llmQuotaKey');
 
 export function llmQuota(limit: number) {
   return { [LLM_THROTTLER_NAME]: { limit, ttl: seconds(3600) } };

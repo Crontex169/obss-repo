@@ -204,7 +204,31 @@ Kota **paylaşılan** bir kaynaktır; her dikey kendi limitini uygular ama guard
 | `002-interview` | `POST /api/interviews/:id/answers` | **60 / saat** (adaptif çağrı üst sınırı) |
 | `003-pre-assessment` | `POST /api/pre-assessments` | **5 / saat** |
 
-Sayaç **başarılı + başarısız** çağrıları birlikte sayar. Aşımda `429` + `details.retryAfterSeconds`.
+Sayaç **başarılı + başarısız** çağrıları birlikte sayar. Aşımda `429` +
+`details.retryAfterSeconds` **ve** standart `Retry-After` başlığı (RFC 9110
+§10.2.3 — ikisi aynı değeri taşır). Sınıra takılan her istek ölçüm için
+loglanır: `[ratelimit] <kova> <method> <route> limit=N user=… retryAfter=…s`
+(`docs/METRICS.md` 1.4b).
+
+> **İSTİSNA — sağlayıcı çöktüğünde kota iade edilir (2026-08-21).** Kural
+> "başarısız çağrı da sayılır" **kötüye kullanımı** hedefler; kullanıcının
+> hiçbir şey almadan hak kaybetmesini değil. Bu yüzden `LlmTimeoutError`
+> (`504`) ve `LlmProviderError` (`502`) durumunda harcanan hak geri verilir
+> (`common/llm-quota-refund.interceptor.ts`).
+>
+> İade **edilmeyenler**, bilinçli olarak:
+> - `LlmSchemaError` (`502`) — sağlayıcı ayakta ve token harcandı; yanıtı şema
+>   dışı çıkaran şey çoğu zaman girdinin kendisidir. İade edilseydi, şemayı
+>   güvenilir biçimde bozan bir girdi **sınırsız ücretsiz çağrı** kapısına
+>   dönerdi.
+> - `InvalidJobPostingError` (`422`) — LLM doğru çalıştı; uygun olmayan şey
+>   kullanıcı girdisi.
+>
+> İade **yalnızca `REDIS_URL` verildiğinde** çalışır: bellek deposunda
+> kütüphane her isabet için ayrı bir zamanlayıcı kurar ve elle düşürmek sayacı
+> eksiye taşıyıp kullanıcıya limitin üstünde hak kazandırırdı. Redis'te sayaç
+> düz bir `INCR` olduğu için iade düz bir `DECR`'dir. Sessizce yanlış
+> davranmaktansa bellek deposunda iade **yapılmaz**.
 
 **Bilinen tavan (T126, 2026-08):** Groq ücretsiz katman **8000 token/dakika,
 organizasyon geneli** (tüm uygulama için ortak — kullanıcı başına değil). Sistem

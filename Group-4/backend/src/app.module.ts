@@ -3,12 +3,13 @@
 // IP başına genel hız sınırını ve CSRF (Origin) korumasını uygulama
 // genelinde burada devreye sokar.
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { ThrottlerModule, seconds } from '@nestjs/throttler';
 import { GlobalThrottleGuard } from './common/guards/global-throttle.guard';
 import { createThrottlerStorage } from './common/throttler-storage';
+import { LlmQuotaRefundInterceptor } from './common/llm-quota-refund.interceptor';
 import { OriginGuard } from './common/guards/origin.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -73,6 +74,18 @@ import { validateEnv } from './config/env.validation';
     // CSRF: state degistiren isteklerde Origin dogrulamasi (docs/SECURITY.md S5).
     // Cerez sameSite'i gevsetilse bile ozel uclar korumali kalir.
     { provide: APP_GUARD, useClass: OriginGuard },
+    // Saglayici cokerse kullanicinin harcanan LLM kotasini geri verir.
+    //
+    // NEDEN GLOBAL, neden uc nokta basina @UseInterceptors DEGIL: iade
+    // yalnizca istekte guard'in biraktigi sayac anahtari varsa calisir, yani
+    // kotasiz uclarda kendiliginden etkisizdir. Global kayit ayrica YENI bir
+    // LLM ucu eklendiginde unutulmasini imkansiz kilar.
+    //
+    // NEDEN main.ts'te useGlobalInterceptors DEGIL: bootstrap yalnizca uretim
+    // yolunda calisir; entegrasyon testleri uygulamayi createNestApplication()
+    // ile kurar ve orada devreye hic girmezdi (ayni gerekce: asagidaki helmet
+    // middleware'i).
+    { provide: APP_INTERCEPTOR, useClass: LlmQuotaRefundInterceptor },
   ],
 })
 export class AppModule implements NestModule {
