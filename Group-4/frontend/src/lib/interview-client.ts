@@ -16,6 +16,8 @@ export interface CreateInterviewInput {
   // 009-linkedin-ilan-cekme: yalnizca ISTEKTE gonderilir, kayitta saklanmaz —
   // sunucu ilan metnini cekip onu kaydeder (specs/009 §2.4).
   jobPostingUrl?: string;
+  // CV eklenmesi opsiyoneldir, ilan kaynagindan BAGIMSIZDIR — yalnizca PDF.
+  cvFile?: File;
   questionCount: number;
   mode: InterviewMode;
   level: ExperienceLevel;
@@ -76,6 +78,7 @@ export async function createInterview(input: CreateInterviewInput) {
   if (input.jobPostingText) form.set('jobPostingText', input.jobPostingText);
   if (input.jobPostingFile) form.set('jobPostingFile', input.jobPostingFile);
   if (input.jobPostingUrl) form.set('jobPostingUrl', input.jobPostingUrl);
+  if (input.cvFile) form.set('cvFile', input.cvFile);
   form.set('questionCount', String(input.questionCount));
   form.set('mode', input.mode);
   form.set('level', input.level);

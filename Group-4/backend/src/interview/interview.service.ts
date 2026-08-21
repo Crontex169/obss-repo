@@ -19,6 +19,7 @@ import {
   buildQuestionGenerationSchema,
   buildQuestionGenerationSystemPrompt,
   InvalidJobPostingError,
+  wrapCvAsData,
   wrapJobPostingAsData,
   wrapPreAssessmentContextAsData,
 } from './llm/question-generation';
@@ -44,6 +45,8 @@ import {
 export interface CreateInterviewArgs {
   dto: CreateInterviewInput;
   file: Express.Multer.File | undefined;
+  // CV eklenmesi opsiyoneldir (sadece PDF) — is ilani kaynagindan bagimsizdir.
+  cvFile: Express.Multer.File | undefined;
   acceptLanguage: string | undefined;
   userId: string;
 }
@@ -76,7 +79,7 @@ export class InterviewService {
 
   // US1: iş ilanı girişi + soru üretimi (FR-001..FR-005, FR-019..FR-023).
   async create(args: CreateInterviewArgs): Promise<Interview> {
-    const { dto, file, userId } = args;
+    const { dto, file, cvFile, userId } = args;
 
     // 009-linkedin-ilan-cekme: sanitizeFreeText UCLU ifadenin SONUCUNA uygulanir,
     // dal basina degil. jobPostingText su ana kadar hicbir kaynak turunde
@@ -89,6 +92,13 @@ export class InterviewService {
           ? await this.fetchJobPostingFromUrl(dto.jobPostingUrl!)
           : dto.jobPostingText!.trim(),
     );
+
+    // CV eklenmesi opsiyoneldir; verilmediyse blok hic uretilmez (asagida
+    // filter(Boolean) ile userData'dan dusuyor). Icerik DB'ye YAZILMAZ —
+    // yalnizca bu cagri icin gecici olarak kullanilir (Ilke V, veri asgarisi).
+    const cvText = cvFile
+      ? sanitizeFreeText(await this.pdf.extractText(cvFile.buffer, cvFile.mimetype))
+      : undefined;
 
     const language = resolveLanguage(args.acceptLanguage);
 
@@ -113,9 +123,11 @@ export class InterviewService {
         level: dto.level,
         language,
         hasPreAssessmentContext: !!preAssessmentContextBlock,
+        hasCvContext: !!cvText,
       }),
       userData: [
         wrapJobPostingAsData(jobPostingText),
+        cvText ? wrapCvAsData(cvText) : undefined,
         preAssessmentContextBlock,
       ]
         .filter(Boolean)

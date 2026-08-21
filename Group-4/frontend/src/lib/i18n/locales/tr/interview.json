@@ -16,6 +16,7 @@
     "jobPostingPlaceholder": "İş ilanını yapıştırın",
     "jobPostingUrlPlaceholder": "https://www.linkedin.com/jobs/view/...",
     "jobPostingUrlHint": "LinkedIn iş ilanı bağlantısını yapıştırın. İlan metni otomatik çekilir.",
+    "cvLabel": "CV (opsiyonel, PDF)",
     "questionCountLabel": "Soru sayısı (5-20)",
     "levelLabel": "Deneyim",
     "levelIntern": "Giriş",

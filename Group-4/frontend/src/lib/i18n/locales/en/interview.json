@@ -16,6 +16,7 @@
     "jobPostingPlaceholder": "Paste the job posting",
     "jobPostingUrlPlaceholder": "https://www.linkedin.com/jobs/view/...",
     "jobPostingUrlHint": "Paste a LinkedIn job posting link. The posting text is fetched automatically.",
+    "cvLabel": "Resume/CV (optional, PDF)",
     "questionCountLabel": "Number of questions (5-20)",
     "levelLabel": "Experience",
     "levelIntern": "Entry",

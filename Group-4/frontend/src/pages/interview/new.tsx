@@ -44,6 +44,9 @@ export default function NewInterviewPage({
   // 009-linkedin-ilan-cekme: bicim dogrulamasi SUNUCUDA (specs/009 §2.3);
   // burada yalnizca bos alan erken yakalanir, metin/PDF dallariyla ayni desen.
   const [jobPostingUrl, setJobPostingUrl] = useState('')
+  // CV eklenmesi opsiyoneldir, ilan kaynagindan BAGIMSIZDIR (007-ui-design deseniyle
+  // ayni PdfUpload bileseni tekrar kullanilir — yeni bir yukleme UI'i yazilmaz).
+  const [cvFile, setCvFile] = useState<File | null>(null)
   // String tutulur ki kullanici alani silip yeniden yazabilsin; gecersiz deger
   // odak cikisinda 5-20 araligina kirpilir.
   const [questionCount, setQuestionCount] = useState('8')
@@ -80,6 +83,7 @@ export default function NewInterviewPage({
         jobPostingText: source === 'text' ? jobPostingText : undefined,
         jobPostingFile: source === 'pdf' ? (file ?? undefined) : undefined,
         jobPostingUrl: source === 'url' ? jobPostingUrl.trim() : undefined,
+        cvFile: cvFile ?? undefined,
         questionCount: clampQuestionCount(questionCount),
         mode,
         level,
@@ -186,6 +190,15 @@ export default function NewInterviewPage({
             </p>
           </div>
         )}
+
+        {/* CV yukleme: opsiyonel, ilan kaynagindan bagimsiz — ayni PdfUpload
+            bileseni tekrar kullanilir (yeni bileşen yazılmaz). */}
+        <div className="flex flex-col gap-1.5 border-t border-[var(--color-border)] pt-4">
+          <span className="text-xs font-medium text-[var(--color-text-muted)]">
+            {t('new.cvLabel')}
+          </span>
+          <PdfUpload file={cvFile} onChange={setCvFile} />
+        </div>
 
         {/* Ayarlar satiri: soru sayisi / gorusme modu / seviye tek yatay
             satirda (007-ui-design T4), dar ekranda alt alta sarar. */}

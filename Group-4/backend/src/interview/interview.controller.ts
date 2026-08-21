@@ -15,11 +15,11 @@ import {
   Post,
   Req,
   Res,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import type { Multer } from 'multer';
 type MulterFile = Express.Multer.File;
@@ -64,17 +64,29 @@ export class InterviewController {
   // Sinir bilerek servis sinirinin bir tik ustundedir ki 10-11 MB araligi
   // sozlesmedeki Turkce 400 yanitini almaya devam etsin (bkz. fonksiyon notu).
   @UseInterceptors(
-    FileInterceptor('jobPostingFile', {
-      limits: { fileSize: resolveUploadHardLimitBytes() },
-    }),
+    FileFieldsInterceptor(
+      [
+        { name: 'jobPostingFile', maxCount: 1 },
+        // CV eklenmesi opsiyoneldir; ayni sert boyut sinirini paylasir
+        // (PdfExtractionService iki dosyayi da ayni kurallarla dogrular).
+        { name: 'cvFile', maxCount: 1 },
+      ],
+      { limits: { fileSize: resolveUploadHardLimitBytes() } },
+    ),
   )
   async create(
     @Body(new ZodValidationPipe(createInterviewSchema))
     dto: CreateInterviewInput,
-    @UploadedFile() file: MulterFile | undefined,
+    // `undefined` OLABILIR: FileFieldsInterceptor yalnizca multipart istekte
+    // `req.files`i doldurur. Ilan metni JSON govdeyle gonderildiginde (en sik
+    // yol) alan hic olusmaz; `files.jobPostingFile` demek orada TypeError atar
+    // ve gorusme olusturmanin tamami 500'e duserdi.
+    @UploadedFiles()
+    files: { jobPostingFile?: MulterFile[]; cvFile?: MulterFile[] } | undefined,
     @Headers('accept-language') acceptLanguage: string | undefined,
     @Req() req: Request & { user?: AuthUser },
   ) {
+    const file = files?.jobPostingFile?.[0];
     if (dto.jobPostingSource === 'pdf' && !file) {
       throw new BadRequestException('PDF dosyasi yuklenmedi.');
     }
@@ -82,6 +94,7 @@ export class InterviewController {
     const interview = await this.interviewService.create({
       dto,
       file,
+      cvFile: files?.cvFile?.[0],
       acceptLanguage,
       userId: req.user!.id,
     });
