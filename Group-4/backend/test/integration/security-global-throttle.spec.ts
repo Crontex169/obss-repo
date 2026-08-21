@@ -11,6 +11,12 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 // ThrottlerStorage'i paylasirdi ve limit onlarin uzerine tasardi; her spec
 // dosyasi kendi Nest uygulamasini (dolayisiyla kendi depolamasini) kurdugu icin
 // izolasyon dosya sinirindadir.
+//
+// BU YUZDEN ENTEGRASYON TESTLERI `REDIS_URL` OLMADAN KOSAR (S1). Redis'li
+// depoda sayac TUM spec dosyalari arasinda ortaktir — uretimde istenen tam da
+// budur, ama burada bu testin tukettigi 300 istek sonraki dosyalara tasar ve
+// onlar 429 alir. Redis yolunun kendi kaniti ayri: iki AYRI depo ornegi ayni
+// sayaci goruyor mu (test/unit/throttler-storage-redis.spec.ts).
 describe('S3 — global siklik siniri (docs/SECURITY.md)', () => {
   let app: INestApplication;
   let prisma: PrismaService;

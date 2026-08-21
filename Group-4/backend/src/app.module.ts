@@ -4,10 +4,11 @@
 // genelinde burada devreye sokar.
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { ThrottlerModule, seconds } from '@nestjs/throttler';
 import { GlobalThrottleGuard } from './common/guards/global-throttle.guard';
+import { createThrottlerStorage } from './common/throttler-storage';
 import { OriginGuard } from './common/guards/origin.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -41,12 +42,22 @@ import { validateEnv } from './config/env.validation';
     // LlmRateLimitGuard yalnizca `llm` isler. Boyle olmasaydi global guard,
     // LLM uc noktalarindaki @Throttle(llmQuota(3)) degerini kendi IP izleyicisiyle
     // uygular ve kullanici basina olmasi gereken kotayi IP basina cevirirdi.
-    ThrottlerModule.forRoot([
-      { name: 'default', ttl: seconds(60), limit: 300 },
-      // Yer tutucu: her LLM uc noktasi @Throttle(llmQuota(N)) ile KENDI
-      // limitini verir (3/60/5 per saat — docs/API_CONVENTIONS.md 3.5).
-      { name: 'llm', ttl: seconds(3600), limit: 1000 },
-    ]),
+    //
+    // SAYAC DEPOSU (S1): `REDIS_URL` verilmisse sayaclar Redis'te tutulur ve
+    // uygulama ORNEKLERI ARASINDA paylasilir; verilmemisse kutuphanenin
+    // surec-ici bellegi kullanilir. Karar tek yerde: common/throttler-storage.ts.
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          { name: 'default', ttl: seconds(60), limit: 300 },
+          // Yer tutucu: her LLM uc noktasi @Throttle(llmQuota(N)) ile KENDI
+          // limitini verir (3/60/5 per saat — docs/API_CONVENTIONS.md 3.5).
+          { name: 'llm', ttl: seconds(3600), limit: 1000 },
+        ],
+        storage: createThrottlerStorage(config.get<string>('REDIS_URL')),
+      }),
+    }),
     PrismaModule,
     AuthModule,
     LlmModule,

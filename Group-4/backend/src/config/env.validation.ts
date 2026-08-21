@@ -47,6 +47,14 @@ export const envSchema = z
     // Yalnizca uretime ozel dogrulamalari acmak icin okunur (asagidaki
     // TRUST_PROXY kontrolu). Uygulamanin geri kalani ortami buradan sormaz.
     NODE_ENV: z.string().optional(),
+    // S1: hiz siniri sayaclarinin deposu. Verilmezse sayaclar surec-ici
+    // bellekte tutulur - tek ornekli kurulumda gecerli bir secimdir, cok
+    // ornekli dagitimda ise gercek sinir ornek sayisiyla CARPILIR.
+    // Bicim: redis://host:port (veya rediss:// TLS icin).
+    // `.url()` KULLANILMAZ: Zod'un url dogrulayicisi sema konusunda gevsek
+    // davranabilir; burada onemli olan tek sey degerin bos olmamasidir,
+    // baglanti gecerliligini ioredis kendisi bildirir (loglanir).
+    REDIS_URL: z.string().min(1).optional(),
     MAIL_TRANSPORT: z.enum(['console', 'resend']).default('console'),
     MAIL_FROM: z.string().optional().default('no-reply@example.com'),
     RESEND_API_KEY: z.string().optional().default(''),

@@ -450,7 +450,8 @@ flowchart LR
 |------|--------------------|
 | Kayıt akışında hesap varlığı ve sağlayıcı öğrenilebilir | Puanlanan kabul kriteri (DS-03-E1); kütle taraması hız sınırıyla pahalılaştırıldı — S7 |
 | Yüklenen PDF'ten çıkarılan metin ≤1 sa. süreç belleğinde tutulur | Çıkarım önbelleği (C5) anahtarı **içeriğin SHA-256'sı**dır: aynı anahtar ancak baytlar birebir aynıysa oluşur, dolayısıyla bir kullanıcının metnini başkasına döndürmesi mümkün değildir. Veri diske yazılmaz, süreç yeniden başlayınca kaybolur; kalıcı depolamadaki (`Interview.jobPostingText`) süre bundan zaten uzundur |
-| Hız sınırı sayaçları çok-örnekli dağıtımda paylaşılmaz | Tek-instance ölçek; Redis'e geçiş yolu `API_CONVENTIONS.md` §3.6'da kayıtlı |
+| `@nestjs/throttler` sayaçları `REDIS_URL` verilmezse çok-örnekli dağıtımda paylaşılmaz | Artık **yapılandırma kararı**: `REDIS_URL` verilirse sayaçlar örnekler arasında paylaşılır ve yeniden başlatmaya dayanır (`common/throttler-storage.ts`). Boş bırakmak tek-örnekli kurulumda geçerli bir seçimdir; hangi yolun seçildiği açılışta loglanır |
+| Auth sayaçları (giriş denemesi, sıfırlama isteği, hesap silme) hâlâ süreç-içi | `rate-limit.config.ts` senkron bir API sunar ve Better Auth kancalarından çağrılır; Redis'e taşımak bu güvenlik yolunu asenkrona çevirmeyi gerektirir. Ayrı bir adım olarak bırakıldı — throttler kovaları paylaşımlıyken bunlar değil |
 | `Origin` başlığı olmayan istek geçer | Tarayıcı dışı istemcilerde CSRF kavramı yoktur; zorunlu kılmak yalnızca meşru istemcileri kırardı — [ADR-0012](DECISIONS.md) |
 | Geliştirmede doğrulama bağlantısı konsola düz yazılır | Yalnızca `MAIL_TRANSPORT="console"` yolunda; üretimde o satırlara hiç ulaşılmaz — S8 |
 
