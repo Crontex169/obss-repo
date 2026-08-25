@@ -1,9 +1,7 @@
-// Sozlu mod — ADR-0010: tarayici Web Speech API.
-// Sunucuda ses isleme YOK, saglayici anahtari YOK, yeni bagimlilik YOK.
-// Istemci konusmayi metne cevirir; sunucu cevabi yazili modla AYNI sekilde alir (FR-008).
-//
-// Bedeli: tarayici bagimliligi (Chrome/Edge). Desteklenmeyen tarayicida sozlu mod
-// UI'da DEVRE DISI gosterilir — sessiz basarisizlik yasak (FR-025).
+// Sozlu mod — ADR-0014: STT Groq Whisper (backend), TTS tarayici Web Speech
+// API (ADR-0010'dan degismedi). Bu dosya iki motoru da acar: kayit
+// (MediaRecorder + AnalyserNode ile ses seviyesi analizi) burada, sesli
+// okuma speech/ altindan devredilir.
 
 import {
   speakText,
@@ -15,6 +13,47 @@ import {
 
 export type { SpeakOptions, SpeechHandle };
 export { hasVoiceFor, loadVoices };
+
+const CANDIDATE_MIME_TYPES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/ogg;codecs=opus',
+  'audio/ogg',
+];
+
+/** Tarayicinin destekledigi ILK aday format — hicbiri yoksa undefined (MediaRecorder varsayilanina duser). */
+export function pickSupportedMimeType(): string | undefined {
+  if (
+    typeof MediaRecorder === 'undefined' ||
+    typeof MediaRecorder.isTypeSupported !== 'function'
+  ) {
+    return undefined;
+  }
+  return CANDIDATE_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
+}
+
+/**
+ * Zaman-domeni orneklerinden kaba genlik (RMS). 128 = sessizlik (orta nokta,
+ * unsigned byte). Donus degeri 0 (sessiz) ile ~1 (uc deger genlik) arasi.
+ */
+export function computeRms(samples: Uint8Array): number {
+  let sumSquares = 0;
+  for (const value of samples) {
+    const normalized = (value - 128) / 128;
+    sumSquares += normalized * normalized;
+  }
+  return Math.sqrt(sumSquares / samples.length);
+}
+
+export function recordingSupported(): boolean {
+  return (
+    typeof navigator !== 'undefined' &&
+    typeof navigator.mediaDevices?.getUserMedia === 'function' &&
+    typeof window !== 'undefined' &&
+    typeof window.MediaRecorder !== 'undefined' &&
+    typeof window.AudioContext !== 'undefined'
+  );
+}
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 

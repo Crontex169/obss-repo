@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
+  computeRms,
+  pickSupportedMimeType,
+  recordingSupported,
   voiceSupport,
   isSupported,
   startDictation,
@@ -9,6 +12,70 @@ import {
   DICTATION_RESTART_DELAY_MS,
   DICTATION_RESTART_LIMIT,
 } from '@/lib/voice-client'
+
+describe('computeRms', () => {
+  it('tam sessizlikte (128 = orta nokta) 0 doner', () => {
+    expect(computeRms(new Uint8Array([128, 128, 128, 128]))).toBeCloseTo(0)
+  })
+
+  it('uc deger genliginde 1e yakin doner', () => {
+    expect(computeRms(new Uint8Array([255, 1, 255, 1]))).toBeGreaterThan(0.9)
+  })
+})
+
+describe('pickSupportedMimeType', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('MediaRecorder yoksa undefined doner', () => {
+    vi.stubGlobal('MediaRecorder', undefined)
+    expect(pickSupportedMimeType()).toBeUndefined()
+  })
+
+  it('desteklenen ILK adayi doner', () => {
+    vi.stubGlobal('MediaRecorder', {
+      isTypeSupported: (type: string) => type === 'audio/webm',
+    })
+    expect(pickSupportedMimeType()).toBe('audio/webm')
+  })
+
+  it('hicbir aday desteklenmiyorsa undefined doner', () => {
+    vi.stubGlobal('MediaRecorder', { isTypeSupported: () => false })
+    expect(pickSupportedMimeType()).toBeUndefined()
+  })
+})
+
+describe('recordingSupported', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('getUserMedia, MediaRecorder, AudioContext HEPSI varsa true doner', () => {
+    vi.stubGlobal('navigator', {
+      mediaDevices: { getUserMedia: vi.fn() },
+    })
+    vi.stubGlobal('MediaRecorder', class {})
+    vi.stubGlobal('AudioContext', class {})
+    expect(recordingSupported()).toBe(true)
+  })
+
+  it('AudioContext eksikse false doner', () => {
+    vi.stubGlobal('navigator', {
+      mediaDevices: { getUserMedia: vi.fn() },
+    })
+    vi.stubGlobal('MediaRecorder', class {})
+    vi.stubGlobal('AudioContext', undefined)
+    expect(recordingSupported()).toBe(false)
+  })
+
+  it('getUserMedia eksikse false doner', () => {
+    vi.stubGlobal('navigator', { mediaDevices: {} })
+    vi.stubGlobal('MediaRecorder', class {})
+    vi.stubGlobal('AudioContext', class {})
+    expect(recordingSupported()).toBe(false)
+  })
+})
 
 // ADR-0010: sozlu mod tarayici Web Speech API'sine dayanir. Testlerde GERCEK
 // tarayici API'si yok (jsdom) — bu yuzden `window.SpeechRecognition` /
