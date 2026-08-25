@@ -218,6 +218,43 @@ veya yok).
 
 ---
 
+## 6b. Sözlü Mod — Ses Kaydını Metne Çevirme (STT, ADR-0014)
+
+> Not: numaralandırma — bu uç nokta `interview.controller.ts`'e §6 (rapor
+> yeniden deneme) ile §7 (panel-events) arasına eklendi; dosyanın geri kalan
+> bölüm numaraları (§7) buna göre **kaydırılmadı**, tek yeni uç nokta bu
+> ara-numarayla eklendi.
+
+`POST /api/interviews/:id/transcribe`
+
+**Guard zinciri**: `SessionGuard` → `InterviewOwnershipGuard` → `SttRateLimitGuard(60/saat)`
+*(ADR-0014, `docs/API_CONVENTIONS.md` §3.5b — `§3.5`'teki `llm` kovasından
+**bağımsız ayrı** bir `stt` kovası; LLM çağrısı değildir)*
+
+**İstek gövdesi**: `multipart/form-data`, tek alan `audio` (ses dosyası,
+`audio/*` MIME türü; azami boyut `MAX_AUDIO_UPLOAD_BYTES` = 15 MB,
+`backend/src/transcription/transcription.service.ts`).
+
+**Yanıt gövdesi**: `{ "text": string }` — Whisper'ın çıkardığı transkript;
+görüşmenin diliyle (`Interview.language`) sağlayıcıya gönderilir, akan/kısmi
+metin **yoktur** (toplu/batch çağrı).
+
+**Kurallar**:
+- `audio` alanı yoksa `400`.
+- `audio.mimetype` `audio/` ile başlamıyorsa `400` — içerik bayt düzeyinde
+  ayrıca doğrulanmaz (bilinçli, sağlayıcı zaten format geçerliliğini kontrol
+  eder).
+- Sağlayıcı hatasında (`TranscriptionProviderError`) `502` — **kota iade
+  edilmez** (`§3.5`'teki LLM iade kuralının aksine, bilinçli — ADR-0014).
+
+**Yanıtlar**: `200` (transkript) / `400` (ses eksik veya yanlış tür) / `404`
+(sahip değil veya yok — §1) / `429` (saatlik sınır, 60/saat, `§3.5b`) / `502`
+(sağlayıcı hatası).
+
+**Gherkin eşlemesi**: Hikâye 2 (sözlü mod), `docs/superpowers/specs/2026-08-24-stt-whisper-design.md`.
+
+---
+
 ## 7. İpucu & Rehberlik Paneli — Görüntüleme Olayı Logu
 
 `POST /api/interviews/:id/panel-events`

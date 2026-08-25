@@ -99,6 +99,7 @@ backend/src/
 │   ├── interview.controller.ts / .service.ts / .module.ts
 │   │     Uçlar: `POST /api/interviews`, `GET /api/interviews`, `GET /:id`,
 │   │     `POST /:id/answers`, `GET /:id/report`, `POST /:id/report/retry`,
+│   │     `POST /:id/transcribe` (sözlü mod STT, Groq Whisper, ADR-0014),
 │   │     `POST /:id/panel-events` (sözlü mod real-time AI asistan olayları), `DELETE /:id`
 │   ├── dto/                      Zod şemaları (soru sayısı, mod, cevap, panel-event)
 │   ├── llm/                      Soru üretimi + adaptif değerlendirme + rapor prompt entegrasyonu
@@ -118,6 +119,12 @@ backend/src/
 │   ├── token-usage.service.ts      Her çağrıda input/output token + tahmini maliyeti TokenUsage tablosuna yazar
 │   └── llm.errors.ts               Hata sınıfları (timeout, şema doğrulama hatası, boş yanıt)
 ├── pdf/pdf-extraction.service.ts   İş ilanı PDF'inden metin çıkarma (unpdf, ADR-0009)
+├── transcription/                 Sözlü mod STT — Groq Whisper (ADR-0014)
+│   ├── transcription.service.ts    Sağlayıcıya bağımsız genel çağrı arayüzü (`POST :id/transcribe` bunu kullanır)
+│   ├── transcription.provider.ts   Sağlayıcı arayüzü/seçimi
+│   ├── providers/groq-transcription.provider.ts         Groq Whisper çağrısı
+│   ├── providers/unconfigured-transcription.provider.ts  API anahtarı yoksa net hata (sessiz başarısızlık yok)
+│   └── transcription.errors.ts     Hata sınıfları (sağlayıcı hatası vb.)
 ```
 
 ### Backend akış özeti
@@ -151,7 +158,7 @@ frontend/src/
 │   ├── pre-assessment-options.ts   Enum → Türkçe UI etiketi eşlemesi
 │   ├── admin-client.ts             005-admin API çağrıları
 │   ├── users-client.ts             001: profil + KVKK onayı uçları
-│   ├── voice-client.ts             Web Speech API sarmalayıcısı (ADR-0010, sözlü mod)
+│   ├── voice-client.ts             STT: `MediaRecorder` kaydı + backend'e yükleme (ADR-0014) — TTS: Web Speech API sarmalayıcısı (ADR-0010, değişmedi)
 │   ├── speech/                      Sözlü mod ileri katmanı (002 FR-035–FR-038, ADR-0010)
 │   │   ├── interview-script.ts      Mülakat diyalog kurgusu (FR-037/FR-038)
 │   │   ├── pronunciation.ts         Telaffuz normalizasyonu ("C#" → "C sharp", FR-035)
@@ -255,7 +262,8 @@ seçimi için yapılan deneysel doğrulama, T001).
 | LLM (güncel) | Groq (birincil) + DeepSeek (yedek), `openai` SDK ile OpenAI-uyumlu çağrı | `backend/src/llm/**` | ADR-0007 |
 | Mail | Resend (`console` modu dev'de varsayılan) | `backend/src/auth/mail/**` | ADR-0008 |
 | PDF çıkarma | unpdf | `backend/src/pdf/**` | ADR-0009 |
-| Sözlü mod (STT/TTS) | Tarayıcı Web Speech API (istemci taraflı, sunucu maliyeti yok) | `frontend/src/lib/voice-client.ts` | ADR-0010 |
+| Sözlü mod — STT | Sunucu taraflı Groq Whisper (istemci `MediaRecorder` ile kaydeder, backend'e yükler) | `backend/src/transcription/**`, `frontend/src/lib/voice-client.ts` | ADR-0014 |
+| Sözlü mod — TTS | Tarayıcı Web Speech API (istemci taraflı, sunucu maliyeti yok) — değişmedi | `frontend/src/lib/voice-client.ts`, `frontend/src/lib/speech/**` | ADR-0010 |
 | Grafik | Recharts (shadcn/ui `Chart` üzerinden) | `frontend/src/components/**` (rapor radar/bar, admin) | ADR-0011 |
 | PDF üretimi (istemci) | jsPDF (tek başına — `html2canvas` yok) | `frontend/src/lib/report-pdf.ts` | ADR yok — kasıtlı, bkz. `specs/004-history/research-pdf-karar.md` |
 | Toast bildirimi | sonner | `frontend/src/App.tsx` + interview bileşenleri | ADR yok — shadcn/ui ekosistemi içi, düşük riskli |

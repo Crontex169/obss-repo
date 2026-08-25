@@ -241,6 +241,34 @@ geri çekilme mekanizması **yok**; ölçekte gerçek darboğaz haline gelirse y
 katmana (ADR ile) geçilir ya da `LlmService` seviyesinde paylaşılan bir token-bucket
 eklenir.
 
+### 3.5b STT hız sınırı (Whisper — ADR-0014)
+
+Sözlü mod STT'si (Groq Whisper, `docs/DECISIONS.md` ADR-0014) `§3.5`'teki
+`llm` kovasından **AYRI** bir kova kullanır — kendi guard'ı vardır
+(`backend/src/common/guards/stt-rate-limit.guard.ts`) ve LLM kotasını
+etkilemez, LLM kotası da onu etkilemez.
+
+| Dikey | Uç nokta | Limit (kullanıcı başına) |
+|-------|----------|--------------------------|
+| `002-interview` | `POST /api/interviews/:id/transcribe` | **60 / saat** |
+
+Aşımda `429` + `details.retryAfterSeconds` **ve** standart `Retry-After`
+başlığı — `§3.5` ile **aynı** paylaşılan telemetri formatı
+(`backend/src/common/guards/throttle-response.ts`): sınıra takılan her istek
+`[ratelimit] stt POST /api/interviews/:id/transcribe limit=60 user=… retryAfter=…s`
+şeklinde loglanır (`docs/METRICS.md` 1.4b).
+
+> **Kota iadesi YOK — bilinçli.** `§3.5`'in aksine, sağlayıcı (Groq) çökse
+> bile (`TranscriptionProviderError`, `502`) harcanan hak **iade edilmez**.
+> Bu, `stt-rate-limit.guard.ts` dosya başı yorumunda ve ADR-0014'te açıkça
+> belgelenmiş bir tasarım kararıdır — spec kapsamı dışında bırakılmıştır
+> (`docs/superpowers/specs/2026-08-24-stt-whisper-design.md`).
+
+60/saat: her "dinleme turu" bir STT çağrısıdır, 3.5 saniyelik sessizlikte tur
+kendiliğinden biter (aday "Yeniden konuş" ile devam eder), `questionCount` 20'ye
+kadar çıkabilir — 20 soruluk bir görüşmede soru başına ~2-3 tur gerçekçi bir
+üst sınırdır (30 yetersiz kalıyordu, bkz. final review düzeltmesi).
+
 ### 3.6 Auth hız sınırları (LLM dışı)
 
 Auth uçları LLM kotasından bağımsızdır; her biri **kendi** sayacını tutar

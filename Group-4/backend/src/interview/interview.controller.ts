@@ -55,7 +55,9 @@ import {
 } from '../transcription/transcription.service';
 
 // contracts/interview-api.md. Guard sirasi: SessionGuard (sinif-seviyesi) ->
-// kaynak uc noktalarinda InterviewOwnershipGuard -> LlmRateLimitGuard.
+// kaynak uc noktalarinda InterviewOwnershipGuard -> LlmRateLimitGuard (LLM
+// uclarinda) veya SttRateLimitGuard (yalniz :id/transcribe, ADR-0014 — ayri
+// kova, LlmRateLimitGuard'dan bagimsiz).
 @Controller('api/interviews')
 @UseGuards(SessionGuard)
 export class InterviewController {
