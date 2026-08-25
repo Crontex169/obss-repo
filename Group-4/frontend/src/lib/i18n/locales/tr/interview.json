@@ -129,6 +129,7 @@
     "noMicrophone": "Mikrofon bulunamadı. Cihazınızın bağlı olduğundan emin olun veya cevabınızı yazın.",
     "networkError": "Ses tanıma servisine ulaşılamadı. İnternet bağlantınızı kontrol edin veya cevabınızı yazın.",
     "listeningHint": "Konuşmaya başlayın — duyduklarım burada görünecek.",
+    "transcribing": "Ses metne çevriliyor...",
     "voiceMissing": "Bu cihazda {{language}} için kurulu bir konuşma sesi yok; okuma sistem varsayılanıyla yapılacak. İşletim sistemi ayarlarından {{language}} sesini eklerseniz doğru telaffuzla okunur.",
     "languageName": {
       "tr": "Türkçe",
@@ -148,6 +149,7 @@
     "status": {
       "speaking": "Asistan konuşuyor",
       "listening": "Sizi dinliyorum",
+      "transcribing": "Ses metne çevriliyor...",
       "reviewing": "Cevabınızı kontrol edin",
       "idle": "Hazır"
     },

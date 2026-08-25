@@ -235,6 +235,17 @@ export class InterviewService {
     }
   }
 
+  // ADR-0014: transcribe ucu Whisper'a dogru dil ipucunu vermek icin sadece
+  // bu alani okur — findOne() gibi agir bir sorgu (questions+answer+report
+  // include'u) gerekmez.
+  async languageOf(id: string): Promise<'tr' | 'en'> {
+    const interview = await this.prisma.interview.findUniqueOrThrow({
+      where: { id },
+      select: { language: true },
+    });
+    return interview.language;
+  }
+
   async currentQuestionOf(interviewId: string) {
     const interview = await this.prisma.interview.findUniqueOrThrow({
       where: { id: interviewId },

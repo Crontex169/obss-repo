@@ -15,11 +15,12 @@ import {
   Post,
   Req,
   Res,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import type { Multer } from 'multer';
 type MulterFile = Express.Multer.File;
@@ -28,6 +29,7 @@ import {
   LlmRateLimitGuard,
   llmQuota,
 } from '../common/guards/llm-rate-limit.guard';
+import { SttRateLimitGuard, sttQuota } from '../common/guards/stt-rate-limit.guard';
 import { Throttle } from '@nestjs/throttler';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { AuthUser } from '../auth/decorators/current-user.decorator';
@@ -47,13 +49,22 @@ import {
 import { InterviewOwnershipGuard } from './ownership/interview-ownership.guard';
 import { resolveUploadHardLimitBytes } from '../pdf/pdf-extraction.service';
 import { InterviewService } from './interview.service';
+import {
+  TranscriptionService,
+  MAX_AUDIO_UPLOAD_BYTES,
+} from '../transcription/transcription.service';
 
 // contracts/interview-api.md. Guard sirasi: SessionGuard (sinif-seviyesi) ->
-// kaynak uc noktalarinda InterviewOwnershipGuard -> LlmRateLimitGuard.
+// kaynak uc noktalarinda InterviewOwnershipGuard -> LlmRateLimitGuard (LLM
+// uclarinda) veya SttRateLimitGuard (yalniz :id/transcribe, ADR-0014 — ayri
+// kova, LlmRateLimitGuard'dan bagimsiz).
 @Controller('api/interviews')
 @UseGuards(SessionGuard)
 export class InterviewController {
-  constructor(private readonly interviewService: InterviewService) {}
+  constructor(
+    private readonly interviewService: InterviewService,
+    private readonly transcriptionService: TranscriptionService,
+  ) {}
 
   // §1: SessionGuard -> LlmRateLimitGuard(3/saat).
   @Post()
@@ -158,6 +169,39 @@ export class InterviewController {
   async retryReport(@Param('id') id: string) {
     const result = await this.interviewService.retryReport(id);
     return { reportStatus: 'ready', report: result.report };
+  }
+
+  // ADR-0014: sozlu mod STT'si. LLM cagrisi DEGILDIR — 'llm' kovasindan
+  // bagimsiz ayri 'stt' kovasi kullanir (docs/API_CONVENTIONS.md 3.5b'ye
+  // dahil, kendi bolumu var). Kota iadesi (S5) BU UCA UYGULANMAZ. 60/saat:
+  // her "dinleme turu" bir STT cagrisi, 3.5sn sessizlikte tur biter, 20
+  // soruluk gorusmede soru basina ~2-3 tur gerceklenebilir (30 yetersizdi).
+  @Post(':id/transcribe')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(InterviewOwnershipGuard, SttRateLimitGuard)
+  @Throttle(sttQuota(60))
+  @UseInterceptors(
+    FileInterceptor('audio', { limits: { fileSize: MAX_AUDIO_UPLOAD_BYTES } }),
+  )
+  async transcribe(
+    @Param('id') id: string,
+    @UploadedFile() audio: MulterFile | undefined,
+  ) {
+    if (!audio) throw new BadRequestException('Ses kaydi yuklenmedi.');
+    // Hafif on eleme — icerikten dogrulama (PDF'teki magic-byte kontrolu
+    // gibi) BILINCLI OLARAK yok: baytlar ayristirilmadan oldugu gibi Groq'a
+    // iletilir, format gecerliligini saglayici zaten kontrol eder.
+    if (!audio.mimetype.startsWith('audio/')) {
+      throw new BadRequestException('Ses dosyasi turu desteklenmiyor.');
+    }
+
+    const language = await this.interviewService.languageOf(id);
+    const result = await this.transcriptionService.transcribe(
+      audio.buffer,
+      audio.mimetype,
+      language,
+    );
+    return { text: result.text };
   }
 
   // §7: SessionGuard -> InterviewOwnershipGuard. LLM cagrisi yok, hiz siniri yok
