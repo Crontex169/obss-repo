@@ -235,6 +235,25 @@ export async function submitAnswer(
   }>(res);
 }
 
+// ADR-0014 — sozlu mod STT'si (Groq Whisper, backend). Blob dosya adi
+// onemsiz (backend uzantiyi mimeType'tan cikarir); alan adi backend'deki
+// FileInterceptor('audio') ile ESLESMELIDIR.
+export async function transcribeAudio(
+  interviewId: string,
+  blob: Blob,
+  mimeType: string,
+) {
+  const form = new FormData();
+  form.set('audio', blob, `kayit.${mimeType.split('/')[1]?.split(';')[0] ?? 'webm'}`);
+
+  const res = await fetch(
+    `${API_URL}/api/interviews/${interviewId}/transcribe`,
+    { method: 'POST', credentials: 'include', body: form },
+  );
+
+  return parse<{ text: string }>(res);
+}
+
 // contracts/interview-api.md §7 (FR-034, issue #48) — salt telemetri; hata UI'ı
 // bloklamaz, panel acilisini engellemez (fire-and-forget).
 export function logPanelEvent(
