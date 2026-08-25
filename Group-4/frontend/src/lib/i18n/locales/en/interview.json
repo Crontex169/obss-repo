@@ -129,6 +129,7 @@
     "noMicrophone": "No microphone found. Check that your device is connected, or type your answer.",
     "networkError": "Couldn't reach the speech recognition service. Check your connection or type your answer.",
     "listeningHint": "Start speaking — what I hear will appear here.",
+    "transcribing": "Transcribing audio...",
     "voiceMissing": "No {{language}} speech voice is installed on this device, so the system default will be used. Adding a {{language}} voice in your OS settings gives correct pronunciation.",
     "languageName": {
       "tr": "Turkish",
@@ -148,6 +149,7 @@
     "status": {
       "speaking": "Assistant is speaking",
       "listening": "Listening to you",
+      "transcribing": "Transcribing audio...",
       "reviewing": "Review your answer",
       "idle": "Ready"
     },

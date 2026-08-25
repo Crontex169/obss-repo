@@ -233,6 +233,7 @@ export default function InterviewSessionPage() {
 
           {useVoice && question.type === 'open_ended' && (
             <VoiceControls
+              interviewId={id!}
               questionText={question.text}
               questionOrder={question.order}
               questionCount={interview.questionCount}

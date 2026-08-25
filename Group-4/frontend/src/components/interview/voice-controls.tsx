@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  startDictation,
+  startRecording,
   speak,
   stopSpeaking,
   voiceSupport,
   hasVoiceFor,
   loadVoices,
-  type Dictation,
+  MicrophoneDeniedError,
+  type Recording,
   type SpeechHandle,
 } from '@/lib/voice-client'
+import { transcribeAudio } from '@/lib/interview-client'
 import { buildPreQuestionSpeech } from '@/lib/speech/interview-script'
 import {
   QUESTION_TIME_LIMIT_SECONDS,
@@ -30,9 +32,10 @@ import { useTranslation } from '@/lib/i18n/language-provider'
 //      (ADR-0010 / R2) — otomatik gonderim YOK. Gonderme eylemi ust bilesende
 //      tek bir "Gonder" dugmesinde kalir; burada ikinci bir gonderim yolu
 //      acilmaz.
-type Phase = 'speaking' | 'listening' | 'reviewing' | 'idle'
+type Phase = 'speaking' | 'listening' | 'transcribing' | 'reviewing' | 'idle'
 
 export function VoiceControls({
+  interviewId,
   questionText,
   questionOrder,
   questionCount,
@@ -44,6 +47,7 @@ export function VoiceControls({
   onSpeechComplete,
   onFallbackToWritten,
 }: {
+  interviewId: string
   questionText: string
   questionOrder: number
   questionCount: number
@@ -71,14 +75,13 @@ export function VoiceControls({
   const [phase, setPhase] = useState<Phase>('idle')
   const [autoFlow, setAutoFlow] = useState(true)
   const [error, setError] = useState('')
-  // Canli onizleme: kullanici mikrofonun GERCEKTEN duydugunu gormeli, yoksa
-  // calisip calismadigini anlamasinin tek yolu beklemek olur (FR-025).
-  const [interim, setInterim] = useState('')
+  // Canli metin YOK (Whisper toplu calisir) — yalnizca ses seviyesi (0-1),
+  // kayit gostergesi icin.
+  const [level, setLevel] = useState(0)
   const [voiceMissing, setVoiceMissing] = useState(false)
 
-  const dictationRef = useRef<Dictation | null>(null)
+  const recordingRef = useRef<Recording | null>(null)
   const speechRef = useRef<SpeechHandle | null>(null)
-  const silenceTimerRef = useRef<number | null>(null)
   const micStartTimerRef = useRef<number | null>(null)
   const valueRef = useRef(value)
   // Efektler bu degerleri OKUR ama onlara BAGLI DEGILDIR: soru okuma yalnizca
@@ -96,13 +99,6 @@ export function VoiceControls({
     onSpeechCompleteRef.current = onSpeechComplete
   }, [onSpeechComplete])
 
-  const clearSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current !== null) {
-      window.clearTimeout(silenceTimerRef.current)
-      silenceTimerRef.current = null
-    }
-  }, [])
-
   const clearMicStartTimer = useCallback(() => {
     if (micStartTimerRef.current !== null) {
       window.clearTimeout(micStartTimerRef.current)
@@ -110,85 +106,66 @@ export function VoiceControls({
     }
   }, [])
 
-  const stopListening = useCallback(() => {
-    clearSilenceTimer()
+  const stopRecording = useCallback(() => {
     clearMicStartTimer()
-    setInterim('')
-    dictationRef.current?.stop()
-    dictationRef.current = null
-  }, [clearMicStartTimer, clearSilenceTimer])
+    setLevel(0)
+    recordingRef.current?.stop()
+    recordingRef.current = null
+  }, [clearMicStartTimer])
 
   const beginListening = useCallback(() => {
     setError('')
-    setInterim('')
-    // Sessizlik = "konusmayi bitirdi" (FR-039). Her yeni parcada sifirlanir,
-    // boylece cumle arasi dusunme molasi cevabin sonu sayilmaz.
-    //
-    // Sayac dinleme BASLARKEN kurulMAZ, ancak GERCEK KONUSMA duyulunca kurulur:
-    // aday soruyu duyup dusunurken gecen sure "cevap bitti" demek degildir.
-    // Aday hic konusmazsa kaydi soru suresi sonlandirir (FR-027).
-    const armSilenceTimer = () => {
-      clearSilenceTimer()
-      silenceTimerRef.current = window.setTimeout(() => {
-        stopListening()
-        setPhase('reviewing')
-      }, VOICE_SILENCE_TIMEOUT_MS)
-    }
+    setLevel(0)
 
-    try {
-      dictationRef.current = startDictation(language, {
-        onFinal: (text) => {
-          setInterim('')
-          onChange(`${valueRef.current} ${text}`.trim())
-          armSilenceTimer()
-        },
-        onInterim: (text) => {
-          setInterim(text)
-          armSilenceTimer()
-        },
-        onSpeechStart: armSilenceTimer,
-        onError: (err) => {
-          clearSilenceTimer()
-          setPhase('idle')
-          // R3: izin reddi kurtarilabilir bir durum degil — yazili moda dus.
-          if (err === 'not-allowed' || err === 'service-not-allowed') {
-            setError(t('voiceControls.micDenied'))
-            onFallbackToWritten()
-          } else if (err === 'audio-capture') {
-            setError(t('voiceControls.noMicrophone'))
-          } else if (err === 'network') {
-            setError(t('voiceControls.networkError'))
-          } else {
+    startRecording(VOICE_SILENCE_TIMEOUT_MS, {
+      onSpeechStart: () => {
+        // Whisper toplu calistigi icin burada yapilacak bir sey yok; sadece
+        // startDictation ile AYNI kavramsal ani (konusma ALGILANDI) tasir.
+      },
+      onLevel: setLevel,
+      onStop: (blob, mimeType) => {
+        setLevel(0)
+        recordingRef.current = null
+        setPhase('transcribing')
+        transcribeAudio(interviewId, blob, mimeType)
+          .then(({ text }) => {
+            onChange(`${valueRef.current} ${text}`.trim())
+            setPhase('reviewing')
+          })
+          .catch(() => {
+            // Spec karari (2026-08-24): STT hatasi mikrofon izni reddiyle
+            // AYNI yoldan gecer — hata goster + yaziliya dus, otomatik
+            // yeniden deneme YOK.
             setError(t('voiceControls.voiceError'))
-          }
-        },
-        onEnd: () => {
-          clearSilenceTimer()
-          setInterim('')
-          // Tanima KALICI olarak bittiyse onay adimina gecilir. Gecici
-          // kesintiler (no-speech) artik buraya ulasmaz — voice-client
-          // oturumu kendisi yeniden baslatir.
-          setPhase((current) => (current === 'listening' ? 'reviewing' : current))
-        },
+            setPhase('idle')
+            onFallbackToWritten()
+          })
+      },
+      onError: () => {
+        setError(t('voiceControls.voiceError'))
+        setPhase('idle')
+      },
+    })
+      .then((recording) => {
+        recordingRef.current = recording
+        setPhase('listening')
       })
-      setPhase('listening')
-    } catch {
-      setError(t('voiceControls.notSupported'))
-      onFallbackToWritten()
-    }
-  }, [
-    clearSilenceTimer,
-    language,
-    onChange,
-    onFallbackToWritten,
-    stopListening,
-    t,
-  ])
+      .catch((err: unknown) => {
+        setPhase('idle')
+        if (err instanceof MicrophoneDeniedError) {
+          setError(t('voiceControls.micDenied'))
+          onFallbackToWritten()
+        } else {
+          setError(t('voiceControls.notSupported'))
+          onFallbackToWritten()
+        }
+      })
+  }, [interviewId, onChange, onFallbackToWritten, t])
 
   // Her yeni soruda: (varsa) karsilama/gecis + soru okunur, sonra dinlenir.
   // Bagimlilik yalnizca SORU — replik/dil ayni soru icinde degismez.
   useEffect(() => {
-    stopListening()
+    stopRecording()
 
     const preQuestion = buildPreQuestionSpeech({
       isFirstQuestion: questionOrder === 1,
@@ -237,7 +214,7 @@ export function VoiceControls({
 
     return () => {
       speechRef.current?.cancel()
-      stopListening()
+      stopRecording()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionText, questionOrder])
@@ -294,11 +271,32 @@ export function VoiceControls({
       {/* Dinlerken mikrofonun ne duydugu GORUNUR olur: aksi halde calismayan
           bir mikrofonla sessizce bekleyen bir mikrofon ayirt edilemez. */}
       {phase === 'listening' && (
+        <div className="flex flex-col gap-1">
+          <p
+            aria-live="polite"
+            className="min-h-5 text-sm italic text-[var(--color-text-muted)]"
+          >
+            {t('voiceControls.listeningHint')}
+          </p>
+          {/* Ses seviyesi gostergesi — Whisper toplu calistigi icin canli
+              metin YOK; kullanici mikrofonun GERCEKTEN duydugunu bu barla
+              gorur (FR-025 ile ayni gerekce: calismayan/sessizce bekleyen
+              mikrofon ayirt edilebilir olmali). */}
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-border)]">
+            <div
+              className="h-full bg-[var(--color-danger)] transition-[width] duration-100"
+              style={{ width: `${Math.min(100, level * 400)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {phase === 'transcribing' && (
         <p
           aria-live="polite"
-          className="min-h-5 text-sm italic text-[var(--color-text-muted)]"
+          className="text-sm italic text-[var(--color-text-muted)]"
         >
-          {interim || t('voiceControls.listeningHint')}
+          {t('voiceControls.transcribing')}
         </p>
       )}
 
@@ -311,17 +309,18 @@ export function VoiceControls({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
+          disabled={phase === 'transcribing'}
           onClick={() => {
             if (phase === 'listening') {
-              stopListening()
-              setPhase('reviewing')
+              stopRecording()
+              setPhase('transcribing')
             } else {
               speechRef.current?.cancel()
               clearMicStartTimer()
               beginListening()
             }
           }}
-          className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium transition-colors hover:border-[var(--color-accent)]"
+          className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium transition-colors hover:border-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {phase === 'listening'
             ? t('voiceControls.stopRecording')
@@ -334,7 +333,7 @@ export function VoiceControls({
           type="button"
           onClick={() => {
             speechRef.current?.cancel()
-            stopListening()
+            stopRecording()
             setPhase('speaking')
             // Yalnizca SORU tekrar okunur (karsilama/gecis degil); soru metni
             // sunucudan zaten gorusme dilinde gelir.
@@ -359,8 +358,8 @@ export function VoiceControls({
             const next = event.target.checked
             setAutoFlow(next)
             if (!next && phase === 'listening') {
-              stopListening()
-              setPhase('reviewing')
+              stopRecording()
+              setPhase('transcribing')
             }
           }}
         />

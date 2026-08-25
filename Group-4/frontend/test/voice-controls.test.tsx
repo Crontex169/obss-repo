@@ -1,21 +1,90 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import { VoiceControls } from '@/components/interview/voice-controls'
-import { startDictation, speak } from '@/lib/voice-client'
+import { speak, voiceSupport, loadVoices, hasVoiceFor } from '@/lib/voice-client'
+import { transcribeAudio } from '@/lib/interview-client'
 import type { SpeakOptions } from '@/lib/speech/speech-queue'
 import { VOICE_MIC_WARMUP_MS } from '@/lib/interview-config'
 
-vi.mock('@/lib/voice-client', () => ({
-  startDictation: vi.fn(),
-  speak: vi.fn(),
-  stopSpeaking: vi.fn(),
-  voiceSupport: vi.fn(() => ({ recognition: true, synthesis: true })),
-  loadVoices: vi.fn(() => Promise.resolve([])),
-  hasVoiceFor: vi.fn(() => true),
-}))
+// ADR-0014: sozlu mod STT'si Groq Whisper'a (backend) tasindi. `speak` ve
+// destek/tespit fonksiyonlari sahtelenir, ama `startRecording` GERCEK
+// calisir — MediaRecorder/getUserMedia/AudioContext jsdom'da yok, bu yuzden
+// Task 12'nin voice-client.test.ts'teki sahte tarayici API'leri BIREBIR
+// buraya da kopyalanir (paylasilan yardimci dosya YARATILMAZ — ponytail: iki
+// kopya, tek yardimci dosyadan daha az soyutlama riski tasir).
+vi.mock('@/lib/voice-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/voice-client')>()
+  return {
+    ...actual,
+    speak: vi.fn(),
+    stopSpeaking: vi.fn(),
+    voiceSupport: vi.fn(() => ({ recognition: true, synthesis: true })),
+    loadVoices: vi.fn(() => Promise.resolve([])),
+    hasVoiceFor: vi.fn(() => true),
+  }
+})
 
-// Hikaye 2 (FR-037..FR-040): asistan artik soru okuyan bir hoparlor degil,
-// gorusmeyi yuruten bir akis. Testler akisin SIRASINI dogrular.
+vi.mock('@/lib/interview-client', () => ({ transcribeAudio: vi.fn() }))
+
+// Ortak sahte MediaRecorder/AudioContext kurulumu — voice-client.test.ts ile
+// AYNI (bkz. o dosyadaki yorum).
+class FakeAnalyser {
+  fftSize = 0
+  frequencyBinCount = 4
+  connect() {}
+  getByteTimeDomainData(out: Uint8Array) {
+    out.set(fakeLevelSamples)
+  }
+}
+
+class FakeAudioContext {
+  createMediaStreamSource() {
+    return { connect() {} }
+  }
+  createAnalyser() {
+    return new FakeAnalyser()
+  }
+  close() {
+    return Promise.resolve()
+  }
+}
+
+class FakeMediaRecorder {
+  static isTypeSupported = () => true
+  ondataavailable: ((e: { data: Blob }) => void) | null = null
+  onstop: (() => void) | null = null
+  onerror: (() => void) | null = null
+  mimeType = 'audio/webm'
+  stream: unknown
+  opts?: unknown
+  constructor(stream: unknown, opts?: unknown) {
+    this.stream = stream
+    this.opts = opts
+    instances.push(this)
+  }
+  start() {}
+  stop() {
+    this.ondataavailable?.({ data: new Blob(['x'], { type: 'audio/webm' }) })
+    this.onstop?.()
+  }
+}
+
+let instances: FakeMediaRecorder[] = []
+let fakeLevelSamples = new Uint8Array([128, 128, 128, 128]) // varsayilan: sessizlik
+
+function stubBrowserApis() {
+  instances = []
+  fakeLevelSamples = new Uint8Array([128, 128, 128, 128])
+  const tracks = [{ stop: vi.fn() }]
+  vi.stubGlobal('navigator', {
+    mediaDevices: {
+      getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => tracks }),
+    },
+  })
+  vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
+  vi.stubGlobal('AudioContext', FakeAudioContext)
+  return { tracks }
+}
 
 /** Son speak() cagrisinin okudugu metin ve bitis geri cagrimi. */
 function lastSpeech() {
@@ -28,15 +97,24 @@ function lastSpeech() {
 }
 
 /**
- * Okumayi bitirir ve mikrofonun acilmasini bekler.
- * Mikrofon okuma biter bitmez DEGIL, kisa bir isinma gecikmesinden sonra
- * acilir (VOICE_MIC_WARMUP_MS) — sentezin kapanan ses cihazi ilk kelimeleri
- * yutmasin diye.
+ * Okumayi bitirir ve mikrofonun (gercek startRecording ile) acilmasini
+ * bekler. Mikrofon okuma biter bitmez DEGIL, kisa bir isinma gecikmesinden
+ * sonra acilir (VOICE_MIC_WARMUP_MS); startRecording da getUserMedia'yi
+ * await'ledigi icin zamanlayici ilerletildikten sonra mikro-gorevlerin de
+ * bosaltilmasi gerekir (advanceTimersByTimeAsync bunu yapar).
  */
-function finishSpeechAndListen() {
-  act(() => lastSpeech().options.onEnd?.())
+async function finishSpeechAndListen() {
   act(() => {
-    vi.advanceTimersByTime(VOICE_MIC_WARMUP_MS)
+    lastSpeech().options.onEnd?.()
+  })
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(VOICE_MIC_WARMUP_MS)
+  })
+}
+
+async function flushPromises() {
+  await act(async () => {
+    await Promise.resolve()
   })
 }
 
@@ -44,6 +122,7 @@ function renderControls(
   overrides: Partial<Parameters<typeof VoiceControls>[0]> = {},
 ) {
   const props = {
+    interviewId: 'interview-1',
     questionText: 'Bir projenizi anlatir misiniz?',
     questionOrder: 1,
     questionCount: 5,
@@ -59,225 +138,106 @@ function renderControls(
   return { props, ...render(<VoiceControls {...props} />) }
 }
 
-describe('VoiceControls — mulakat akisi', () => {
+describe('VoiceControls — Whisper tabanli kayit akisi (ADR-0014)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.mocked(startDictation).mockReset()
     vi.mocked(speak).mockReset()
     vi.mocked(speak).mockReturnValue({ cancel: vi.fn() })
-    vi.mocked(startDictation).mockReturnValue({ stop: vi.fn() })
+    vi.mocked(voiceSupport).mockReset()
+    vi.mocked(voiceSupport).mockReturnValue({ recognition: true, synthesis: true })
+    vi.mocked(loadVoices).mockReset()
+    vi.mocked(loadVoices).mockReturnValue(Promise.resolve([]))
+    vi.mocked(hasVoiceFor).mockReset()
+    vi.mocked(hasVoiceFor).mockReturnValue(true)
+    vi.mocked(transcribeAudio).mockReset()
+    // Varsayilan: hic cozulmez — testler ihtiyaci olanlarda kendi
+    // mockResolvedValue/mockRejectedValue'sunu verir. Bu sadece unmount'ta
+    // (efekt cleanup'i stopRecording -> onStop) transcribeAudio'nun tanimsiz
+    // donmemesi icindir.
+    vi.mocked(transcribeAudio).mockReturnValue(new Promise(() => {}))
+    stubBrowserApis()
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
-  it('ilk soruda once KARSILAMA, sonra soru okunur (kriter 1)', () => {
-    renderControls({ questionOrder: 1 })
+  it('soru okunduktan sonra otomatik akista kayit baslar (listening fazi)', async () => {
+    renderControls()
 
-    const { text } = lastSpeech()
-    // Karsilamada pozisyon, soru sayisi ve sure gecer; soru metni SONRA gelir.
-    expect(text).toContain('Yazilim Gelistirici')
-    expect(text).toContain('5')
-    expect(text).toContain('90')
-    expect(text.indexOf('Merhaba')).toBeLessThan(
-      text.indexOf('Bir projenizi anlatir misiniz?'),
+    await finishSpeechAndListen()
+
+    expect(screen.getByText('Sizi dinliyorum')).toBeInTheDocument()
+    expect(instances).toHaveLength(1)
+  })
+
+  it("kayit bitince (onStop) 'transcribing' fazina gecilir, transcribeAudio cagrilir", async () => {
+    vi.mocked(transcribeAudio).mockReturnValue(new Promise(() => {}))
+    renderControls()
+    await finishSpeechAndListen()
+
+    fireEvent.click(screen.getByText('Kaydı durdur'))
+
+    expect(screen.getAllByText('Ses metne çevriliyor...').length).toBeGreaterThan(0)
+    expect(transcribeAudio).toHaveBeenCalledWith(
+      'interview-1',
+      expect.any(Blob),
+      'audio/webm',
     )
   })
 
-  it('sonraki sorularda karsilama YAPILMAZ, sunucu repligi okunur (kriter 5)', () => {
-    renderControls({
-      questionOrder: 2,
-      interviewerRemark: 'Projeden bahsettiniz, tesekkurler.',
-    })
+  it('transcribeAudio basarili donerse metin onChange ile cevaba eklenir, faz reviewing olur', async () => {
+    vi.mocked(transcribeAudio).mockResolvedValue({ text: 'bir projede calistim' })
+    const onChange = vi.fn()
+    renderControls({ onChange, value: 'onceki cevap' })
+    await finishSpeechAndListen()
 
-    const { text } = lastSpeech()
-    expect(text).not.toContain('Merhaba')
-    expect(text.indexOf('Projeden bahsettiniz, tesekkurler.')).toBeLessThan(
-      text.indexOf('Bir projenizi anlatir misiniz?'),
-    )
-  })
+    fireEvent.click(screen.getByText('Kaydı durdur'))
+    await flushPromises()
 
-  it('replik yoksa sablon gecisi okunur — akis sessiz kalmaz', () => {
-    renderControls({ questionOrder: 2, interviewerRemark: null })
-
-    const { text } = lastSpeech()
-    expect(text).not.toBe('Bir projenizi anlatir misiniz?')
-    expect(text.length).toBeGreaterThan('Bir projenizi anlatir misiniz?'.length)
-  })
-
-  it('seslendirme GORUSME dilini kullanir, arayuz dilini DEGIL', () => {
-    // Arayuz Turkce (test varsayilani) ama gorusme Ingilizce: asistan
-    // Ingilizce karsilamali. Aksi halde Ingilizce gorusme Turkce konusur.
-    renderControls({ language: 'en', questionOrder: 1 })
-
-    const { text } = lastSpeech()
-    expect(text).toContain('Hello and welcome')
-    expect(text).not.toContain('Merhaba')
-  })
-
-  it('gecis repligi de gorusme dilinden gelir', () => {
-    renderControls({
-      language: 'en',
-      questionOrder: 2,
-      interviewerRemark: null,
-    })
-
-    const { text } = lastSpeech()
-    expect(text).not.toMatch(/Teşekkür|Anladım|Not aldım/)
-  })
-
-  it('asistan KONUSURKEN mikrofon acilmaz (eko engeli — kriter 3)', () => {
-    renderControls()
-
-    expect(screen.getByText('Asistan konuşuyor')).toBeInTheDocument()
-    expect(startDictation).not.toHaveBeenCalled()
-  })
-
-  it('okuma bitince sure sinyali verilir ve mikrofon OTOMATIK acilir (kriter 2, 10)', () => {
-    const { props } = renderControls()
-
-    finishSpeechAndListen()
-
-    // FR-040: sayac ancak simdi baslayabilir.
-    expect(props.onSpeechComplete).toHaveBeenCalledTimes(1)
-    expect(startDictation).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Sizi dinliyorum')).toBeInTheDocument()
-  })
-
-  it('aday HENUZ KONUSMADIYSA sessizlik sayaci kayda baslamaz (dusunme suresi cevabin sonu degil)', () => {
-    const stop = vi.fn()
-    vi.mocked(startDictation).mockReturnValue({ stop })
-    renderControls()
-
-    finishSpeechAndListen()
-    // Aday soruyu duydu ve dusunuyor: bu sure kaydi KAPATMAMALI.
-    act(() => {
-      vi.advanceTimersByTime(30_000)
-    })
-
-    expect(stop).not.toHaveBeenCalled()
-    expect(screen.getByText('Sizi dinliyorum')).toBeInTheDocument()
-  })
-
-  it('konusma DUYULDUKTAN sonra sessizlik surerse kayit durur ve ONAY adimina gecilir (kriter 4)', () => {
-    const stop = vi.fn()
-    let handlers: Parameters<typeof startDictation>[1] | undefined
-    vi.mocked(startDictation).mockImplementation((_lang, h) => {
-      handlers = h
-      return { stop }
-    })
-    renderControls()
-
-    finishSpeechAndListen()
-    act(() => handlers?.onSpeechStart?.())
-    act(() => {
-      vi.advanceTimersByTime(4000)
-    })
-
-    expect(stop).toHaveBeenCalled()
+    expect(onChange).toHaveBeenCalledWith('onceki cevap bir projede calistim')
     expect(screen.getByText('Cevabınızı kontrol edin')).toBeInTheDocument()
   })
 
-  it('konusma devam ederken sessizlik sayaci sifirlanir — cevap erken kesilmez', () => {
-    const stop = vi.fn()
-    let handlers: Parameters<typeof startDictation>[1] | undefined
-    vi.mocked(startDictation).mockImplementation((_lang, h) => {
-      handlers = h
-      return { stop }
-    })
-    renderControls()
-
-    finishSpeechAndListen()
-    act(() => handlers?.onSpeechStart?.())
-    act(() => {
-      vi.advanceTimersByTime(3000)
-    })
-    // Aday konusmaya devam etti: sayac sifirlanmali.
-    act(() => handlers?.onInterim?.('devam eden cevap'))
-    act(() => {
-      vi.advanceTimersByTime(3000)
-    })
-
-    expect(stop).not.toHaveBeenCalled()
-  })
-
-  it('dinlerken duyulan metin CANLI gosterilir — mikrofonun calistigi gorunur olur', () => {
-    let handlers: Parameters<typeof startDictation>[1] | undefined
-    vi.mocked(startDictation).mockImplementation((_lang, h) => {
-      handlers = h
-      return { stop: vi.fn() }
-    })
-    renderControls()
-
-    finishSpeechAndListen()
-    act(() => handlers?.onInterim?.('bir projede calistim'))
-
-    expect(screen.getByText('bir projede calistim')).toBeInTheDocument()
-  })
-
-  it('otomatik akis KAPATILINCA mikrofon kendiliginden acilmaz (kriter 9)', () => {
-    renderControls()
-
-    // userEvent yerine fireEvent: bu dosya sahte zamanlayici kullaniyor ve
-    // userEvent'in kendi bekleme dongusu sahte saatle ilerlemiyor.
-    fireEvent.click(screen.getByRole('checkbox'))
-    finishSpeechAndListen()
-
-    expect(startDictation).not.toHaveBeenCalled()
-    expect(screen.getByText('Hazır')).toBeInTheDocument()
-  })
-
-  it('mikrofon izni reddedilirse yazili moda dusulur (ADR-0010 / R3)', () => {
-    let handlers: Parameters<typeof startDictation>[1] | undefined
-    vi.mocked(startDictation).mockImplementation((_lang, h) => {
-      handlers = h
-      return { stop: vi.fn() }
-    })
+  it('transcribeAudio hata donerse hata mesaji gosterilir VE onFallbackToWritten cagrilir', async () => {
+    vi.mocked(transcribeAudio).mockRejectedValue(new Error('network'))
     const { props } = renderControls()
+    await finishSpeechAndListen()
 
-    finishSpeechAndListen()
-    act(() => handlers?.onError?.('not-allowed'))
+    fireEvent.click(screen.getByText('Kaydı durdur'))
+    await flushPromises()
 
+    expect(
+      screen.getByText('Ses alınamadı. Tekrar deneyin veya cevabınızı yazın.'),
+    ).toBeInTheDocument()
     expect(props.onFallbackToWritten).toHaveBeenCalledTimes(1)
   })
 
-  it('okuma BASARISIZ olsa bile sure sinyali verilir — akis kilitlenmez', () => {
+  it('MicrophoneDeniedError firlarsa onFallbackToWritten cagrilir (mevcut davranis korunur)', async () => {
+    vi.stubGlobal('navigator', {
+      mediaDevices: {
+        getUserMedia: vi.fn().mockRejectedValue(new Error('NotAllowedError')),
+      },
+    })
     const { props } = renderControls()
+    await finishSpeechAndListen()
 
-    act(() => lastSpeech().options.onError?.('synthesis-failed'))
-
-    expect(props.onSpeechComplete).toHaveBeenCalledTimes(1)
+    expect(props.onFallbackToWritten).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByText('Mikrofon izni verilmedi. Cevabınızı yazarak girebilirsiniz.'),
+    ).toBeInTheDocument()
   })
 
-  it('dikte sonucu icin en guncel value prop degerini kullanir', () => {
-    let handlers: Parameters<typeof startDictation>[1] | undefined
-    vi.mocked(startDictation).mockImplementation((_lang, h) => {
-      handlers = h
-      return { stop: vi.fn() }
-    })
-    const onChange = vi.fn()
-    const { rerender } = renderControls({ value: 'ilk', onChange })
+  it('tarayici desteklenmiyorsa (recordingSupported() === false) notSupportedFallback metni gosterilir', () => {
+    vi.mocked(voiceSupport).mockReturnValue({ recognition: false, synthesis: true })
 
-    finishSpeechAndListen()
+    renderControls()
 
-    rerender(
-      <VoiceControls
-        questionText="Bir projenizi anlatir misiniz?"
-        questionOrder={1}
-        questionCount={5}
-        position="Yazilim Gelistirici"
-        language="tr"
-        interviewerRemark={null}
-        value="guncel"
-        onChange={onChange}
-        onSpeechComplete={vi.fn()}
-        onFallbackToWritten={vi.fn()}
-      />,
-    )
-
-    act(() => handlers?.onFinal('ek'))
-
-    expect(onChange).toHaveBeenCalledWith('guncel ek')
+    expect(
+      screen.getByText(
+        'Bu tarayıcı sesli girişi desteklemiyor — cevabınızı yazarak girin.',
+      ),
+    ).toBeInTheDocument()
   })
 })
