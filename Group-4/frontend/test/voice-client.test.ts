@@ -216,4 +216,15 @@ describe('startRecording', () => {
 
     expect(tracks[0].stop).toHaveBeenCalledTimes(1)
   })
+
+  it('cancel() kaydi iptal eder — onStop TETIKLENMEZ', async () => {
+    const { tracks } = stubBrowserApis()
+    const onStop = vi.fn()
+    const recording = await startRecording(1000, { onStop })
+
+    recording.cancel()
+
+    expect(onStop).not.toHaveBeenCalled()
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1)
+  })
 })

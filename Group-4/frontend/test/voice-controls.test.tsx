@@ -24,7 +24,10 @@ vi.mock('@/lib/voice-client', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/interview-client', () => ({ transcribeAudio: vi.fn() }))
+vi.mock('@/lib/interview-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/interview-client')>()
+  return { ...actual, transcribeAudio: vi.fn() }
+})
 
 // Ortak sahte MediaRecorder/AudioContext kurulumu — voice-client.test.ts ile
 // AYNI (bkz. o dosyadaki yorum).
@@ -139,6 +142,8 @@ function renderControls(
 }
 
 describe('VoiceControls — Whisper tabanli kayit akisi (ADR-0014)', () => {
+  let tracks: { stop: ReturnType<typeof vi.fn> }[] = []
+
   beforeEach(() => {
     vi.useFakeTimers()
     vi.mocked(speak).mockReset()
@@ -155,7 +160,7 @@ describe('VoiceControls — Whisper tabanli kayit akisi (ADR-0014)', () => {
     // (efekt cleanup'i stopRecording -> onStop) transcribeAudio'nun tanimsiz
     // donmemesi icindir.
     vi.mocked(transcribeAudio).mockReturnValue(new Promise(() => {}))
-    stubBrowserApis()
+    ;({ tracks } = stubBrowserApis())
   })
 
   afterEach(() => {
@@ -239,5 +244,102 @@ describe('VoiceControls — Whisper tabanli kayit akisi (ADR-0014)', () => {
         'Bu tarayıcı sesli girişi desteklemiyor — cevabınızı yazarak girin.',
       ),
     ).toBeInTheDocument()
+  })
+
+  // Critical #1 duzeltmesi: 90sn QuestionTimer soruyu aday HALA konusurken
+  // otomatik ilerletebilir — bu ESKI sorunun devam eden kaydi, YENI sorunun
+  // cevap kutusuna YUKLENMEMELI.
+  it('soru degisirken (dinleme sirasinda) devam eden kayit iptal edilir, transcribeAudio cagrilmaz', async () => {
+    const onChange = vi.fn()
+    const { rerender } = renderControls({
+      onChange,
+      value: 'onceki cevap',
+      questionText: 'Soru 1',
+      questionOrder: 1,
+    })
+    await finishSpeechAndListen()
+
+    expect(screen.getByText('Sizi dinliyorum')).toBeInTheDocument()
+    expect(instances).toHaveLength(1)
+
+    rerender(
+      <VoiceControls
+        interviewId="interview-1"
+        questionText="Soru 2"
+        questionOrder={2}
+        questionCount={5}
+        position="Yazilim Gelistirici"
+        language="tr"
+        interviewerRemark={null}
+        value="onceki cevap"
+        onChange={onChange}
+        onSpeechComplete={vi.fn()}
+        onFallbackToWritten={vi.fn()}
+      />,
+    )
+
+    // Kayit YUKLENMEDEN (onStop tetiklenmeden) iptal edildi: transcribeAudio
+    // hic cagrilmadi, eski sorunun cevap degeri degismedi, mikrofon kapandi.
+    expect(transcribeAudio).not.toHaveBeenCalled()
+    expect(onChange).not.toHaveBeenCalled()
+    expect(tracks[0].stop).toHaveBeenCalled()
+  })
+
+  // Critical #2 duzeltmesi: getUserMedia izni COK GEC gelirse ve o sirada
+  // soru zaten degismisse, gec gelen kayit mikrofonu SONSUZA dek acik
+  // birakmamali.
+  it('mikrofon izni soru degistikten SONRA gelirse, gecersiz nesildeki kayit iptal edilir, listening fazina hic girilmez', async () => {
+    let resolveGetUserMedia: (stream: unknown) => void = () => {}
+    const pending = new Promise((resolve) => {
+      resolveGetUserMedia = resolve
+    })
+    const lateTracks = [{ stop: vi.fn() }]
+    vi.stubGlobal('navigator', {
+      mediaDevices: {
+        getUserMedia: vi.fn().mockReturnValue(pending),
+      },
+    })
+
+    const onChange = vi.fn()
+    const { rerender } = renderControls({
+      onChange,
+      value: 'onceki cevap',
+      questionText: 'Soru 1',
+      questionOrder: 1,
+    })
+
+    // Okuma biter, beginListening() cagrilir -> getUserMedia PENDING kalir.
+    act(() => {
+      lastSpeech().options.onEnd?.()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(VOICE_MIC_WARMUP_MS)
+    })
+    expect(screen.queryByText('Sizi dinliyorum')).not.toBeInTheDocument()
+
+    // Izin hala beklerken soru degisir (aday QuestionTimer ile ilerledi).
+    rerender(
+      <VoiceControls
+        interviewId="interview-1"
+        questionText="Soru 2"
+        questionOrder={2}
+        questionCount={5}
+        position="Yazilim Gelistirici"
+        language="tr"
+        interviewerRemark={null}
+        value="onceki cevap"
+        onChange={onChange}
+        onSpeechComplete={vi.fn()}
+        onFallbackToWritten={vi.fn()}
+      />,
+    )
+
+    // Simdi ESKI soru icin verilen izin gelir.
+    resolveGetUserMedia({ getTracks: () => lateTracks })
+    await flushPromises()
+
+    expect(screen.queryByText('Sizi dinliyorum')).not.toBeInTheDocument()
+    expect(transcribeAudio).not.toHaveBeenCalled()
+    expect(lateTracks[0].stop).toHaveBeenCalled()
   })
 })

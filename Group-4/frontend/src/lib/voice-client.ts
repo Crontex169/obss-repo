@@ -100,8 +100,14 @@ export interface RecordingHandlers {
 }
 
 export interface Recording {
-  /** Elle durdurma (kullanici "Kaydi Durdur" butonuna bastiginda). */
+  /** Elle durdurma (kullanici "Kaydi Durdur" butonuna bastiginda) — kayit
+   *  YUKLENIR (onStop tetiklenir, transkript uretilir). */
   stop(): void;
+  /** Yuklemeden vazgecer — onStop TETIKLENMEZ, transkript uretilmez, kota
+   *  harcanmaz. Soru degisti / bilesen kalkti gibi "bu kaydin artik anlami
+   *  yok" durumlarinda kullanilir; kullanici/sessizlik tetikli stop()'tan
+   *  BILINCLI OLARAK farklidir (bkz. review, Critical #1/#2). */
+  cancel(): void;
 }
 
 // Kaba genlik esigi — bunun USTU "konusma", ALTI "sessizlik" sayilir.
@@ -136,6 +142,7 @@ export async function startRecording(
   );
   const chunks: BlobPart[] = [];
   let stopped = false;
+  let discarded = false;
   let silenceTimer: number | undefined;
   let hasSpoken = false;
 
@@ -172,6 +179,11 @@ export async function startRecording(
     recorder.stop();
   }
 
+  function cancelRecording() {
+    discarded = true;
+    finish();
+  }
+
   const levelInterval = window.setInterval(() => {
     analyser.getByteTimeDomainData(samples);
     const level = computeRms(samples);
@@ -189,6 +201,7 @@ export async function startRecording(
     if (event.data.size > 0) chunks.push(event.data);
   };
   recorder.onstop = () => {
+    if (discarded) return;
     const finalType = recorder.mimeType || mimeType || 'audio/webm';
     handlers.onStop(new Blob(chunks, { type: finalType }), finalType);
   };
@@ -201,7 +214,7 @@ export async function startRecording(
 
   recorder.start();
 
-  return { stop: finish };
+  return { stop: finish, cancel: cancelRecording };
 }
 
 // Okuma kalitesi speech/ altinda: metin once telaffuz normalizasyonundan ve

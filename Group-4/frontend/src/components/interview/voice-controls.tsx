@@ -10,7 +10,7 @@ import {
   type Recording,
   type SpeechHandle,
 } from '@/lib/voice-client'
-import { transcribeAudio } from '@/lib/interview-client'
+import { transcribeAudio, ApiError } from '@/lib/interview-client'
 import { buildPreQuestionSpeech } from '@/lib/speech/interview-script'
 import {
   QUESTION_TIME_LIMIT_SECONDS,
@@ -88,6 +88,11 @@ export function VoiceControls({
   // soru degistiginde tetiklenmeli, kullanici cevabi yazdikca degil.
   const autoFlowRef = useRef(autoFlow)
   const onSpeechCompleteRef = useRef(onSpeechComplete)
+  // Ayni anda birden fazla beginListening() cagrisi olabilir (soru degisti
+  // veya mikrofon izni cok gec geldi) — STALE olan sonucu gormezden gelmek
+  // icin her cagri kendi neslini tasir; cozuldugunde nesil hala GUNCEL mi
+  // diye kontrol edilir (Critical #2 duzeltmesi).
+  const recordingGenerationRef = useRef(0)
 
   useEffect(() => {
     valueRef.current = value
@@ -106,6 +111,17 @@ export function VoiceControls({
     }
   }, [])
 
+  // Soru degisti / bilesen kalkti: kaydi YUKLEMEDEN iptal et. stopRecording()
+  // (asagida) ile KARISTIRILMAMALI — o kullanici/sessizlik tetikli, transkript
+  // URETIR; bu iptal eder, transkript uretmez (Critical #1 duzeltmesi).
+  const cancelRecording = useCallback(() => {
+    clearMicStartTimer()
+    recordingGenerationRef.current += 1
+    setLevel(0)
+    recordingRef.current?.cancel()
+    recordingRef.current = null
+  }, [clearMicStartTimer])
+
   const stopRecording = useCallback(() => {
     clearMicStartTimer()
     setLevel(0)
@@ -116,6 +132,7 @@ export function VoiceControls({
   const beginListening = useCallback(() => {
     setError('')
     setLevel(0)
+    const generation = recordingGenerationRef.current
 
     startRecording(VOICE_SILENCE_TIMEOUT_MS, {
       onSpeechStart: () => {
@@ -132,11 +149,13 @@ export function VoiceControls({
             onChange(`${valueRef.current} ${text}`.trim())
             setPhase('reviewing')
           })
-          .catch(() => {
-            // Spec karari (2026-08-24): STT hatasi mikrofon izni reddiyle
-            // AYNI yoldan gecer — hata goster + yaziliya dus, otomatik
-            // yeniden deneme YOK.
-            setError(t('voiceControls.voiceError'))
+          .catch((err: unknown) => {
+            // Spec karari (2026-08-24): STT hatasi mikrofon izni reddiyle AYNI
+            // yoldan gecer — hata goster + yaziliya dus, otomatik yeniden
+            // deneme YOK. Sunucudan gelen ozel mesaj (orn. kota asimi) VARSA
+            // o gosterilir — genel "tekrar deneyin" mesaji kota asiminda
+            // kullaniciyi daha fazla istek atmaya tesvik ederdi (review Minor #8).
+            setError(err instanceof ApiError ? err.message : t('voiceControls.voiceError'))
             setPhase('idle')
             onFallbackToWritten()
           })
@@ -147,6 +166,13 @@ export function VoiceControls({
       },
     })
       .then((recording) => {
+        if (recordingGenerationRef.current !== generation) {
+          // Bu cagri ARTIK GECERSIZ: soru degisti veya bilesen kalkti,
+          // mikrofon izni gelene kadar. Kaydi YAYINLAMADAN iptal et
+          // (Critical #2 duzeltmesi) — aksi halde mikrofon suresiz acik kalirdi.
+          recording.cancel()
+          return
+        }
         recordingRef.current = recording
         setPhase('listening')
       })
@@ -165,7 +191,7 @@ export function VoiceControls({
   // Her yeni soruda: (varsa) karsilama/gecis + soru okunur, sonra dinlenir.
   // Bagimlilik yalnizca SORU — replik/dil ayni soru icinde degismez.
   useEffect(() => {
-    stopRecording()
+    cancelRecording()
 
     const preQuestion = buildPreQuestionSpeech({
       isFirstQuestion: questionOrder === 1,
@@ -214,7 +240,7 @@ export function VoiceControls({
 
     return () => {
       speechRef.current?.cancel()
-      stopRecording()
+      cancelRecording()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionText, questionOrder])
