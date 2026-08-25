@@ -86,7 +86,7 @@
 | Yapılandırılmış çıktı | Groq: `json_schema` + `strict` · DeepSeek: `json_object` + prompt'a gömülü şema | — |
 | Runtime şema doğrulama | Zod (her sağlayıcıda zorunlu — DeepSeek yolunda tek garanti) | — |
 | LLM çağrı timeout | `LLM_REQUEST_TIMEOUT_MS` varsayılan **30 sn**; çağrı başına override (interview raporu **60 sn**) | — |
-| Voice / Speech (STT-TTS) | **Tarayıcı Web Speech API** — istemci tarafı, sunucuda ses işleme yok (ADR-0010) | tarayıcı yerleşik |
+| Voice / Speech (STT-TTS) | **STT: Groq Whisper** (`whisper-large-v3-turbo`, backend — ADR-0014) · **TTS: Tarayıcı Web Speech API** (istemci, ADR-0010) | `openai` SDK (Groq uyumlu) |
 
 > Gerekçe: ADR-0007 (`DECISIONS.md`). Eleyici eksen **maliyet**: LLM maliyeti sıfır olmalı.
 > ADR-0006 (OpenAI) bu kısıt nedeniyle değiştirildi ve tarihsel kayıt olarak korunuyor.
