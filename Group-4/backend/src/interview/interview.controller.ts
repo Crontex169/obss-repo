@@ -170,12 +170,14 @@ export class InterviewController {
   }
 
   // ADR-0014: sozlu mod STT'si. LLM cagrisi DEGILDIR — 'llm' kovasindan
-  // bagimsiz ayri 'stt' kovasi kullanir (docs/API_CONVENTIONS.md 3.5'e
-  // dahil degil, kendi bolumu var). Kota iadesi (S5) BU UCA UYGULANMAZ.
+  // bagimsiz ayri 'stt' kovasi kullanir (docs/API_CONVENTIONS.md 3.5b'ye
+  // dahil, kendi bolumu var). Kota iadesi (S5) BU UCA UYGULANMAZ. 60/saat:
+  // her "dinleme turu" bir STT cagrisi, 3.5sn sessizlikte tur biter, 20
+  // soruluk gorusmede soru basina ~2-3 tur gerceklenebilir (30 yetersizdi).
   @Post(':id/transcribe')
   @HttpCode(HttpStatus.OK)
   @UseGuards(InterviewOwnershipGuard, SttRateLimitGuard)
-  @Throttle(sttQuota(30))
+  @Throttle(sttQuota(60))
   @UseInterceptors(
     FileInterceptor('audio', { limits: { fileSize: MAX_AUDIO_UPLOAD_BYTES } }),
   )

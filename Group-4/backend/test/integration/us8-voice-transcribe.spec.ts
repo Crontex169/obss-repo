@@ -126,4 +126,20 @@ describe('POST /api/interviews/:id/transcribe (ADR-0014)', () => {
 
     expect(res.status).toBe(401);
   });
+
+  // FIX4 (final review): SttRateLimitGuard + sttQuota'nin izole bir birim
+  // testinden ote, GERCEKTEN uca (@UseGuards + @Throttle) baglandigini
+  // kanitlar — us2-answer-rate-limit.spec.ts ile AYNI desen. sttQuota(60)
+  // (bkz. interview.controller.ts, FIX5: 30 -> 60), bu yuzden 61 istek.
+  it('61. transcribe istegi 429 doner (SttRateLimitGuard uca gercekten bagli)', async () => {
+    ctx.fakeTranscription.always({ text: 'Deneyimliyim.' });
+
+    let last!: request.Response;
+    for (let i = 0; i < 61; i += 1) {
+      last = await post();
+    }
+
+    expect(last.status).toBe(429);
+    expect(last.body.details.retryAfterSeconds).toBeGreaterThan(0);
+  }, 30_000);
 });
