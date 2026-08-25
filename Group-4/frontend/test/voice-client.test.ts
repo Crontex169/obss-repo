@@ -5,13 +5,14 @@ import {
   recordingSupported,
   voiceSupport,
   isSupported,
-  startDictation,
-  speak,
-  stopSpeaking,
+  startRecording,
   VoiceUnsupportedError,
-  DICTATION_RESTART_DELAY_MS,
-  DICTATION_RESTART_LIMIT,
+  MicrophoneDeniedError,
 } from '@/lib/voice-client'
+
+// ADR-0014: sozlu mod STT'si Groq Whisper'a (backend) tasindi. Testlerde
+// GERCEK tarayici API'si yok (jsdom) — MediaRecorder/getUserMedia/AudioContext
+// stub'lanir.
 
 describe('computeRms', () => {
   it('tam sessizlikte (128 = orta nokta) 0 doner', () => {
@@ -39,330 +40,180 @@ describe('pickSupportedMimeType', () => {
     })
     expect(pickSupportedMimeType()).toBe('audio/webm')
   })
-
-  it('hicbir aday desteklenmiyorsa undefined doner', () => {
-    vi.stubGlobal('MediaRecorder', { isTypeSupported: () => false })
-    expect(pickSupportedMimeType()).toBeUndefined()
-  })
 })
 
-describe('recordingSupported', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
-  it('getUserMedia, MediaRecorder, AudioContext HEPSI varsa true doner', () => {
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn() },
-    })
-    vi.stubGlobal('MediaRecorder', class {})
-    vi.stubGlobal('AudioContext', class {})
-    expect(recordingSupported()).toBe(true)
-  })
-
-  it('AudioContext eksikse false doner', () => {
-    vi.stubGlobal('navigator', {
-      mediaDevices: { getUserMedia: vi.fn() },
-    })
-    vi.stubGlobal('MediaRecorder', class {})
-    vi.stubGlobal('AudioContext', undefined)
-    expect(recordingSupported()).toBe(false)
-  })
-
-  it('getUserMedia eksikse false doner', () => {
-    vi.stubGlobal('navigator', { mediaDevices: {} })
-    vi.stubGlobal('MediaRecorder', class {})
-    vi.stubGlobal('AudioContext', class {})
-    expect(recordingSupported()).toBe(false)
-  })
-})
-
-// ADR-0010: sozlu mod tarayici Web Speech API'sine dayanir. Testlerde GERCEK
-// tarayici API'si yok (jsdom) — bu yuzden `window.SpeechRecognition` /
-// `window.speechSynthesis` stub'lanir. Amac: (a) yetenek tespiti dogru
-// calisiyor mu, (b) desteklenmeyen tarayicida ZARIF BOZULMA (sessiz
-// basarisizlik degil, acik hata/devre disi) var mi.
-
-// `speechSynthesis` lib.dom'da ZORUNLU alan olarak tanimli; `delete` edebilmek
-// icin once Omit ile dusurulur, sonra opsiyonel olarak geri eklenir.
-type W = Omit<typeof window, 'speechSynthesis'> & {
-  SpeechRecognition?: unknown
-  webkitSpeechRecognition?: unknown
-  speechSynthesis?: unknown
+// Ortak sahte MediaRecorder/AudioContext kurulumu — startRecording testleri
+// bunu paylasir.
+class FakeAnalyser {
+  fftSize = 0
+  frequencyBinCount = 4
+  connect() {}
+  getByteTimeDomainData(out: Uint8Array) {
+    out.set(fakeLevelSamples)
+  }
 }
 
-function deleteSpeechGlobals() {
-  const w = window as W
-  delete w.SpeechRecognition
-  delete w.webkitSpeechRecognition
-  delete w.speechSynthesis
+class FakeAudioContext {
+  createMediaStreamSource() {
+    return { connect() {} }
+  }
+  createAnalyser() {
+    return new FakeAnalyser()
+  }
+  close() {
+    return Promise.resolve()
+  }
+}
+
+class FakeMediaRecorder {
+  static isTypeSupported = () => true
+  ondataavailable: ((e: { data: Blob }) => void) | null = null
+  onstop: (() => void) | null = null
+  onerror: (() => void) | null = null
+  mimeType = 'audio/webm'
+  stream: unknown
+  opts?: unknown
+  constructor(stream: unknown, opts?: unknown) {
+    this.stream = stream
+    this.opts = opts
+    instances.push(this)
+  }
+  start() {}
+  stop() {
+    this.ondataavailable?.({ data: new Blob(['x'], { type: 'audio/webm' }) })
+    this.onstop?.()
+  }
+}
+
+let instances: FakeMediaRecorder[] = []
+let fakeLevelSamples = new Uint8Array([128, 128, 128, 128]) // varsayilan: sessizlik
+
+function stubBrowserApis() {
+  instances = []
+  fakeLevelSamples = new Uint8Array([128, 128, 128, 128])
+  const tracks = [{ stop: vi.fn() }]
+  vi.stubGlobal('navigator', {
+    mediaDevices: {
+      getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => tracks }),
+    },
+  })
+  vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
+  vi.stubGlobal('AudioContext', FakeAudioContext)
+  return { tracks }
 }
 
 describe('voiceSupport / isSupported (yetenek tespiti)', () => {
   afterEach(() => {
-    deleteSpeechGlobals()
+    vi.unstubAllGlobals()
   })
 
-  it('SpeechRecognition ve speechSynthesis YOKSA ikisi de false doner', () => {
-    deleteSpeechGlobals()
-
-    expect(voiceSupport()).toEqual({ recognition: false, synthesis: false })
+  it('kayit desteklenmiyorsa recognition:false doner', () => {
+    vi.stubGlobal('navigator', { mediaDevices: {} })
+    vi.stubGlobal('MediaRecorder', undefined)
+    vi.stubGlobal('AudioContext', undefined)
+    expect(voiceSupport().recognition).toBe(false)
     expect(isSupported()).toBe(false)
   })
 
-  it('yalnizca webkitSpeechRecognition VARSA recognition true doner (Chrome/Edge onegi)', () => {
-    deleteSpeechGlobals()
-    ;(window as W).webkitSpeechRecognition = class {} as never
-
+  it('kayit destekleniyorsa recognition:true doner', () => {
+    stubBrowserApis()
     expect(voiceSupport().recognition).toBe(true)
     expect(isSupported()).toBe(true)
   })
-
-  it('SpeechRecognition ve speechSynthesis IKISI de VARSA ikisi de true doner', () => {
-    deleteSpeechGlobals()
-    ;(window as W).SpeechRecognition = class {} as never
-    ;(window as W).speechSynthesis = {} as never
-
-    expect(voiceSupport()).toEqual({ recognition: true, synthesis: true })
-  })
 })
 
-interface FakeRecognitionInstance {
-  onresult: ((e: unknown) => void) | null
-  onerror: ((e: { error: string }) => void) | null
-  onend: (() => void) | null
-  onspeechstart: (() => void) | null
-}
-
-/** window.SpeechRecognition yerine, olay tetikleyebildigimiz bir sahte kurar. */
-function mountFakeRecognition() {
-  deleteSpeechGlobals()
-  let created: FakeRecognitionInstance | null = null
-  const start = vi.fn()
-  const stop = vi.fn()
-  class FakeRecognition {
-    lang = ''
-    continuous = false
-    interimResults = false
-    onresult: ((e: unknown) => void) | null = null
-    onerror: ((e: { error: string }) => void) | null = null
-    onend: (() => void) | null = null
-    onspeechstart: (() => void) | null = null
-    start = start
-    stop = stop
-    abort = vi.fn()
-    constructor() {
-      created = this
-    }
-  }
-  ;(window as W).SpeechRecognition = FakeRecognition as never
-  return { instance: () => created, start, stop }
-}
-
-describe('startDictation (zarif bozulma)', () => {
-  afterEach(() => {
-    deleteSpeechGlobals()
-  })
-
-  it('tarayici desteklemiyorsa VoiceUnsupportedError FIRLATIR (sessiz basarisizlik yok)', () => {
-    deleteSpeechGlobals()
-
-    expect(() =>
-      startDictation('tr', { onFinal: vi.fn() }),
-    ).toThrow(VoiceUnsupportedError)
-  })
-
-  it('destekleniyorsa recognition.start() cagrilir ve dil gorusme dilinden gelir (tr -> tr-TR)', () => {
-    deleteSpeechGlobals()
-    const start = vi.fn()
-    const stop = vi.fn()
-    class FakeRecognition {
-      lang = ''
-      continuous = false
-      interimResults = false
-      onresult: unknown = null
-      onerror: unknown = null
-      onend: unknown = null
-      start = start
-      stop = stop
-      abort = vi.fn()
-    }
-    ;(window as W).SpeechRecognition = FakeRecognition as never
-
-    const dictation = startDictation('tr', { onFinal: vi.fn() })
-
-    expect(start).toHaveBeenCalledTimes(1)
-    dictation.stop()
-    expect(stop).toHaveBeenCalledTimes(1)
-  })
-
-  it('en gorusme dilinde en-US kullanilir', () => {
-    deleteSpeechGlobals()
-    let created: { lang: string } | null = null
-    class FakeRecognition {
-      lang = ''
-      continuous = false
-      interimResults = false
-      onresult: unknown = null
-      onerror: unknown = null
-      onend: unknown = null
-      start = vi.fn()
-      stop = vi.fn()
-      abort = vi.fn()
-      constructor() {
-        created = this
-      }
-    }
-    ;(window as W).SpeechRecognition = FakeRecognition as never
-
-    startDictation('en', { onFinal: vi.fn() })
-
-    expect(created).not.toBeNull()
-    // `created` yalnizca sahte sinifin constructor'inda atandigi icin TS onu
-    // hala `null` olarak daraltiyor; ara `unknown` cast'i bunu asar.
-    expect((created as unknown as { lang: string }).lang).toBe('en-US')
-  })
-
-  it('kesinlesmis sonuc onFinal, kesinlesmemis sonuc onInterim tetikler', () => {
-    deleteSpeechGlobals()
-    let recognitionInstance: {
-      onresult: ((e: unknown) => void) | null
-    } | null = null
-    class FakeRecognition {
-      lang = ''
-      continuous = false
-      interimResults = false
-      onresult: ((e: unknown) => void) | null = null
-      onerror: unknown = null
-      onend: unknown = null
-      start = vi.fn()
-      stop = vi.fn()
-      abort = vi.fn()
-      constructor() {
-        recognitionInstance = this
-      }
-    }
-    ;(window as W).SpeechRecognition = FakeRecognition as never
-
-    const onFinal = vi.fn()
-    const onInterim = vi.fn()
-    startDictation('tr', { onFinal, onInterim })
-
-    recognitionInstance!.onresult!({
-      resultIndex: 0,
-      results: [
-        Object.assign([{ transcript: 'kesin metin' }], { isFinal: true }),
-        Object.assign([{ transcript: 'gecici metin' }], { isFinal: false }),
-      ],
-    })
-
-    expect(onFinal).toHaveBeenCalledWith('kesin metin')
-    expect(onInterim).toHaveBeenCalledWith('gecici metin')
-  })
-
-  it('kurtarilamaz hata onError + onEnd tetikler (FR-011 benzeri zarif bozulma)', () => {
-    const { instance } = mountFakeRecognition()
-    const onError = vi.fn()
-    const onEnd = vi.fn()
-    startDictation('tr', { onFinal: vi.fn(), onError, onEnd })
-
-    instance()!.onerror!({ error: 'not-allowed' })
-    // Tarayici onerror'dan sonra onend de tetikler; onEnd TEK kez gitmeli.
-    instance()!.onend!()
-
-    expect(onError).toHaveBeenCalledWith('not-allowed')
-    expect(onEnd).toHaveBeenCalledTimes(1)
-  })
-
-  it('no-speech "cevap bitti" DEGILDIR: hata bildirmez, oturum yeniden baslar', () => {
-    vi.useFakeTimers()
-    const { instance, start } = mountFakeRecognition()
-    const onError = vi.fn()
-    const onEnd = vi.fn()
-    startDictation('tr', { onFinal: vi.fn(), onError, onEnd })
-
-    // Chrome birkac saniye sessizlikten sonra oturumu boyle kapatir. Aday
-    // hala cevap vermeye hazir — dinleme SURMELI, akis bitmemeli.
-    instance()!.onerror!({ error: 'no-speech' })
-    instance()!.onend!()
-    vi.advanceTimersByTime(DICTATION_RESTART_DELAY_MS)
-
-    expect(onError).not.toHaveBeenCalled()
-    expect(onEnd).not.toHaveBeenCalled()
-    expect(start).toHaveBeenCalledTimes(2)
-    vi.useRealTimers()
-  })
-
-  it('stop() sonrasi oturum YENIDEN BASLAMAZ ve onEnd bir kez tetiklenir', () => {
-    vi.useFakeTimers()
-    const { instance, start } = mountFakeRecognition()
-    const onEnd = vi.fn()
-    const dictation = startDictation('tr', { onFinal: vi.fn(), onEnd })
-
-    dictation.stop()
-    instance()!.onend!()
-    vi.advanceTimersByTime(DICTATION_RESTART_DELAY_MS * 4)
-
-    expect(start).toHaveBeenCalledTimes(1)
-    expect(onEnd).toHaveBeenCalledTimes(1)
-    vi.useRealTimers()
-  })
-
-  it('hic ses gelmezse sonsuz dongu olmaz — sinirdan sonra oturum kapanir', () => {
-    vi.useFakeTimers()
-    const { instance } = mountFakeRecognition()
-    const onEnd = vi.fn()
-    startDictation('tr', { onFinal: vi.fn(), onEnd })
-
-    for (let i = 0; i <= DICTATION_RESTART_LIMIT; i += 1) {
-      instance()!.onend!()
-      vi.advanceTimersByTime(DICTATION_RESTART_DELAY_MS)
-    }
-
-    expect(onEnd).toHaveBeenCalledTimes(1)
-    vi.useRealTimers()
-  })
-})
-
-describe('speak / stopSpeaking (metin okuma — synthesis destegi yoksa sessizce atlanir)', () => {
+describe('startRecording', () => {
   beforeEach(() => {
-    deleteSpeechGlobals()
+    vi.useFakeTimers()
   })
   afterEach(() => {
-    deleteSpeechGlobals()
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
-  it('speechSynthesis YOKSA speak() hata FIRLATMAZ (tarayici sadece sesli okumayi atlar)', () => {
-    expect(() => speak('merhaba', 'tr')).not.toThrow()
+  it('destekleniyorsa VoiceUnsupportedError firlatmaz, kayit baslar', async () => {
+    stubBrowserApis()
+    const recording = await startRecording(1000, { onStop: vi.fn() })
+    expect(recording.stop).toBeInstanceOf(Function)
+    expect(instances).toHaveLength(1)
   })
 
-  it('speechSynthesis VARSA speak() cancel + speak cagirir, dil dogru gecirilir', () => {
-    const cancel = vi.fn()
-    const speakFn = vi.fn()
-    ;(window as W).speechSynthesis = { cancel, speak: speakFn } as never
-    // jsdom SpeechSynthesisUtterance saglamaz — minimal global stub.
-    ;(globalThis as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance =
-      class {
-        lang = ''
-        // `erasableSyntaxOnly`: parametre ozelligi yerine acik atama.
-        text: string
-        constructor(text: string) {
-          this.text = text
-        }
-      }
-
-    speak('merhaba', 'tr')
-
-    expect(cancel).toHaveBeenCalledTimes(1)
-    expect(speakFn).toHaveBeenCalledTimes(1)
+  it('destekleniyorsa VoiceUnsupportedError firlatir', async () => {
+    vi.stubGlobal('navigator', { mediaDevices: {} })
+    vi.stubGlobal('MediaRecorder', undefined)
+    vi.stubGlobal('AudioContext', undefined)
+    await expect(startRecording(1000, { onStop: vi.fn() })).rejects.toBeInstanceOf(
+      VoiceUnsupportedError,
+    )
   })
 
-  it('stopSpeaking synthesis VARSA cancel cagirir, YOKSA sessizce atlar', () => {
-    expect(() => stopSpeaking()).not.toThrow()
+  it('mikrofon izni reddedilirse MicrophoneDeniedError firlatir', async () => {
+    vi.stubGlobal('navigator', {
+      mediaDevices: {
+        getUserMedia: vi.fn().mockRejectedValue(new Error('NotAllowedError')),
+      },
+    })
+    vi.stubGlobal('MediaRecorder', FakeMediaRecorder)
+    vi.stubGlobal('AudioContext', FakeAudioContext)
 
-    const cancel = vi.fn()
-    ;(window as W).speechSynthesis = { cancel } as never
-    stopSpeaking()
-    expect(cancel).toHaveBeenCalledTimes(1)
+    await expect(startRecording(1000, { onStop: vi.fn() })).rejects.toBeInstanceOf(
+      MicrophoneDeniedError,
+    )
+  })
+
+  it('elle stop() cagrilinca kayit biter, onStop blob ile tetiklenir', async () => {
+    stubBrowserApis()
+    const onStop = vi.fn()
+    const recording = await startRecording(1000, { onStop })
+
+    recording.stop()
+
+    expect(onStop).toHaveBeenCalledTimes(1)
+    const [blob, mimeType] = onStop.mock.calls[0] as [Blob, string]
+    expect(blob).toBeInstanceOf(Blob)
+    expect(mimeType).toBe('audio/webm')
+  })
+
+  it('konusma sonrasi sessizlik esigi dolunca kayit KENDILIGINDEN biter', async () => {
+    stubBrowserApis()
+    fakeLevelSamples = new Uint8Array([255, 1, 255, 1]) // "konusma" seviyesi
+    const onStop = vi.fn()
+    const onSpeechStart = vi.fn()
+    await startRecording(1000, { onStop, onSpeechStart })
+
+    // Ses seviyesi dongusu 100ms'de bir kosar; konusma algilanir, sessizlik
+    // sayaci KURULUR (armSilenceTimer). Sayac HER "konusma" tespitinde YENIDEN
+    // kurulur — bu yuzden esik dolmadan ONCE sessizlige gecmek SART, aksi
+    // halde interval sayaci surekli sifirlar ve finish() hic tetiklenmez.
+    await vi.advanceTimersByTimeAsync(100)
+    expect(onSpeechStart).toHaveBeenCalledTimes(1)
+    expect(onStop).not.toHaveBeenCalled()
+
+    // Aday susuyor: interval artik sessizlik olcer, sayaci BIR DAHA kurmaz.
+    // En son kurulan 1000ms'lik sayac (t=100ms'de) t=1100ms'de dolar.
+    fakeLevelSamples = new Uint8Array([128, 128, 128, 128]) // sessizlik
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(onStop).toHaveBeenCalledTimes(1)
+  })
+
+  it('konusma HIC algilanmazsa sessizlik sayaci hic kurulmaz, kayit surer', async () => {
+    stubBrowserApis() // varsayilan: sessizlik (128,128,128,128)
+    const onStop = vi.fn()
+    await startRecording(1000, { onStop })
+
+    // Uzun sure gecse de HICBIR sessizlik sayaci kurulmadi (armSilenceTimer
+    // yalnizca konusma tespit edilince cagrilir) — kayit elle durdurulmadikca
+    // surer (soru suresi zaten cagiran tarafta ayrica sinirlar).
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(onStop).not.toHaveBeenCalled()
+  })
+
+  it('stop() sonrasi mikrofon KAPATILIR (track.stop cagrilir)', async () => {
+    const { tracks } = stubBrowserApis()
+    const recording = await startRecording(1000, { onStop: vi.fn() })
+
+    recording.stop()
+
+    expect(tracks[0].stop).toHaveBeenCalledTimes(1)
   })
 })
