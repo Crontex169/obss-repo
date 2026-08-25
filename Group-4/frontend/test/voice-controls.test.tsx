@@ -343,3 +343,108 @@ describe('VoiceControls — Whisper tabanli kayit akisi (ADR-0014)', () => {
     expect(lateTracks[0].stop).toHaveBeenCalled()
   })
 })
+
+// Task 14'un yeniden yazimiyla kaybolan, DEGISMEYEN davranis testleri —
+// Whisper'a gecisten ETKILENMEYEN senaryolar (bkz. review Important #3).
+// Eski dosyadaki SpeechRecognition tabanli mock'lar burada KOPYALANMADI;
+// ayni senaryolar bu dosyanin gercek MediaRecorder tabanli
+// stubBrowserApis() fixture'ina karsi yeniden yazildi.
+describe('VoiceControls — Task 14 oncesinden korunan davranis', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.mocked(speak).mockReset()
+    vi.mocked(speak).mockReturnValue({ cancel: vi.fn() })
+    vi.mocked(voiceSupport).mockReset()
+    vi.mocked(voiceSupport).mockReturnValue({ recognition: true, synthesis: true })
+    vi.mocked(loadVoices).mockReset()
+    vi.mocked(loadVoices).mockReturnValue(Promise.resolve([]))
+    vi.mocked(hasVoiceFor).mockReset()
+    vi.mocked(hasVoiceFor).mockReturnValue(true)
+    vi.mocked(transcribeAudio).mockReset()
+    vi.mocked(transcribeAudio).mockReturnValue(new Promise(() => {}))
+    stubBrowserApis()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('seslendirme GORUSME dilini kullanir, arayuz dilini DEGIL', () => {
+    // Arayuz Turkce (test varsayilani) ama gorusme Ingilizce: asistan
+    // Ingilizce karsilamali. Aksi halde Ingilizce gorusme Turkce konusur.
+    renderControls({ language: 'en', questionOrder: 1 })
+
+    const { text } = lastSpeech()
+    expect(text).toContain('Hello and welcome')
+    expect(text).not.toContain('Merhaba')
+  })
+
+  it('asistan KONUSURKEN mikrofon acilmaz (eko engeli — kriter 3 / FR-039)', () => {
+    renderControls()
+
+    expect(screen.getByText('Asistan konuşuyor')).toBeInTheDocument()
+    expect(instances).toHaveLength(0)
+  })
+
+  it('okuma bitince sure sinyali verilir (FR-040)', async () => {
+    const { props } = renderControls()
+
+    await finishSpeechAndListen()
+
+    expect(props.onSpeechComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it('okuma BASARISIZ olsa bile sure sinyali verilir — akis kilitlenmez (FR-040)', () => {
+    const { props } = renderControls()
+
+    act(() => {
+      lastSpeech().options.onError?.('synthesis-failed')
+    })
+
+    expect(props.onSpeechComplete).toHaveBeenCalledTimes(1)
+  })
+
+  it('otomatik akis KAPATILINCA mikrofon kendiliginden acilmaz (kriter 9)', async () => {
+    renderControls()
+
+    // userEvent yerine fireEvent: bu dosya sahte zamanlayici kullaniyor ve
+    // userEvent'in kendi bekleme dongusu sahte saatle ilerlemiyor.
+    fireEvent.click(screen.getByRole('checkbox'))
+    await finishSpeechAndListen()
+
+    expect(instances).toHaveLength(0)
+    expect(screen.getByText('Hazır')).toBeInTheDocument()
+  })
+
+  it('dikte sonucu icin en guncel value prop degerini kullanir', async () => {
+    vi.mocked(transcribeAudio).mockResolvedValue({ text: 'ek cevap' })
+    const onChange = vi.fn()
+    const { rerender } = renderControls({ value: 'ilk', onChange })
+    await finishSpeechAndListen()
+    expect(instances).toHaveLength(1)
+
+    // Kayit surerken (SORU DEGISMEDEN) value prop guncellenir — orn. baska
+    // bir bilesen cevabi degistirdi. valueRef bunu YAKALAMALI.
+    rerender(
+      <VoiceControls
+        interviewId="interview-1"
+        questionText="Bir projenizi anlatir misiniz?"
+        questionOrder={1}
+        questionCount={5}
+        position="Yazilim Gelistirici"
+        language="tr"
+        interviewerRemark={null}
+        value="guncel"
+        onChange={onChange}
+        onSpeechComplete={vi.fn()}
+        onFallbackToWritten={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('Kaydı durdur'))
+    await flushPromises()
+
+    expect(onChange).toHaveBeenCalledWith('guncel ek cevap')
+  })
+})

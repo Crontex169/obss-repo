@@ -217,6 +217,33 @@ describe('startRecording', () => {
     expect(tracks[0].stop).toHaveBeenCalledTimes(1)
   })
 
+  it('konusma surerken IKINCI bir esik gecisi sessizlik sayacini yeniden kurar — ilk esikte durmaz', async () => {
+    stubBrowserApis()
+    fakeLevelSamples = new Uint8Array([255, 1, 255, 1]) // konusma seviyesi
+    const onStop = vi.fn()
+    await startRecording(1000, { onStop })
+
+    // t=100ms: ILK esik gecisi — sayac t=1100'e kurulur.
+    await vi.advanceTimersByTimeAsync(100)
+
+    // t=600ms: HALA konusuluyor — IKINCI (ve ara) esik gecisleri, sayac
+    // en son t=600'de yeniden kurulup t=1600'e itelenir.
+    await vi.advanceTimersByTimeAsync(500)
+
+    // Aday susuyor: interval artik sessizlik olcer, sayaci bir daha kurmaz.
+    fakeLevelSamples = new Uint8Array([128, 128, 128, 128])
+
+    // t=1100 GECER (ilk esigin "hayali" sonu) ama kayit HALA surer — sayac
+    // gercekte t=1600'e kurulmustu (ikinci esik gecisinden). Sayac yalnizca
+    // ILK seferde kurulmus olsaydi (bug), burada zaten durmus olurdu.
+    await vi.advanceTimersByTimeAsync(500) // t=1100
+    expect(onStop).not.toHaveBeenCalled()
+
+    // t=1600'de (ikinci esikten +1000ms) kayit KENDILIGINDEN durur.
+    await vi.advanceTimersByTimeAsync(500) // t=1600
+    expect(onStop).toHaveBeenCalledTimes(1)
+  })
+
   it('cancel() kaydi iptal eder — onStop TETIKLENMEZ', async () => {
     const { tracks } = stubBrowserApis()
     const onStop = vi.fn()
