@@ -43,13 +43,15 @@ async function mockSession(page: Page) {
   )
 }
 
-/** ADR-0010: tarayici destegi olmadigi durumu simule eder (FR-025). */
+/** ADR-0014: tarayici destegi olmadigi durumu simule eder (FR-025). STT artik
+ *  MediaRecorder+getUserMedia+AudioContext'e bagli (SpeechRecognition'a DEGIL);
+ *  ucu silmek yeterli — recordingSupported() ucunun HEPSINI arar. */
 async function stubVoiceUnsupported(page: Page) {
   await page.addInitScript(() => {
     // @ts-expect-error test stub
-    delete window.SpeechRecognition
+    delete window.MediaRecorder
     // @ts-expect-error test stub
-    delete window.webkitSpeechRecognition
+    delete window.AudioContext
     // @ts-expect-error test stub
     delete window.speechSynthesis
   })
