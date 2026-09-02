@@ -38,7 +38,15 @@ async function mockSession(page: Page) {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ kvkkConsentAt: '2026-01-01T00:00:00.000Z', hasPassword: true }),
+      body: JSON.stringify({
+        kvkkConsentAt: '2026-01-01T00:00:00.000Z',
+        hasPassword: true,
+        cv: null,
+        // 010-odeme-abonelik: kota rozeti bu alanlari okur.
+        plan: 'free',
+        interviewsUsed: 0,
+        interviewsLimit: 3,
+      }),
     }),
   )
 }

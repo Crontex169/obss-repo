@@ -1,0 +1,36 @@
+{
+  "title": "Plans",
+  "subtitle": "Your monthly interview allowance depends on your plan.",
+  "currentPlan": "Your current plan",
+  "perMonth": "month",
+  "interviewsPerMonth": "{{count}} interviews per month",
+  "plans": {
+    "free": { "name": "Free", "description": "Enough to try it out." },
+    "pro": { "name": "Pro", "description": "For regular practice." },
+    "pro_plus": { "name": "Pro+", "description": "For intensive preparation." }
+  },
+  "sameFeatures": "Voice mode, PDF reports and interview history are available on every plan. Plans differ only in the monthly interview allowance.",
+  "upgrade": "Switch to this plan",
+  "manage": "Manage subscription",
+  "manageHint": "Change your payment method, switch plans or cancel.",
+  "current": "Your plan",
+  "redirecting": "Redirecting you to checkout…",
+  "quota": {
+    "label": "{{used}}/{{limit}} interviews this month",
+    "exhausted": "You have used this month's allowance",
+    "upgradeCta": "Upgrade your plan"
+  },
+  "return": {
+    "processing": "Processing your payment…",
+    "processingHint": "This can take a few seconds, please keep this page open.",
+    "success": "Your plan has been updated.",
+    "successHint": "Your new allowance is available right away.",
+    "timeout": "Your payment went through but your plan has not updated yet.",
+    "timeoutHint": "This can take a few minutes. Refresh the page or check back later.",
+    "toDashboard": "Back to dashboard"
+  },
+  "errors": {
+    "checkout": "Could not open the checkout page. Please try again.",
+    "portal": "Could not open subscription management. Please try again."
+  }
+}

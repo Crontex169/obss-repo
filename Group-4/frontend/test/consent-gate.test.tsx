@@ -19,6 +19,10 @@ describe('ConsentGateDialog', () => {
       kvkkConsentAt: null,
       hasPassword: true,
       cv: null,
+      // 010-odeme-abonelik: /me yaniti plan ve kota alanlariyla genisledi.
+      plan: 'free',
+      interviewsUsed: 0,
+      interviewsLimit: 3,
     })
   })
 
@@ -134,6 +138,10 @@ describe('ConsentGateDialog', () => {
       kvkkConsentAt: '2026-01-01T00:00:00.000Z',
       hasPassword: true,
       cv: null,
+      // 010-odeme-abonelik: /me yaniti plan ve kota alanlariyla genisledi.
+      plan: 'free',
+      interviewsUsed: 0,
+      interviewsLimit: 3,
     })
     render(<ConsentGateDialog />)
 

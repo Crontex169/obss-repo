@@ -1,0 +1,36 @@
+{
+  "title": "Planlar",
+  "subtitle": "Aylık görüşme hakkın planına göre değişir.",
+  "currentPlan": "Mevcut planın",
+  "perMonth": "ay",
+  "interviewsPerMonth": "aylık {{count}} görüşme",
+  "plans": {
+    "free": { "name": "Ücretsiz", "description": "Denemek için yeterli." },
+    "pro": { "name": "Pro", "description": "Düzenli hazırlık yapanlar için." },
+    "pro_plus": { "name": "Pro+", "description": "Yoğun tempoda çalışanlar için." }
+  },
+  "sameFeatures": "Tüm planlarda sesli mod, PDF rapor ve görüşme geçmişi açıktır. Planlar yalnızca aylık görüşme hakkıyla ayrılır.",
+  "upgrade": "Bu plana geç",
+  "manage": "Aboneliği yönet",
+  "manageHint": "Ödeme yöntemini değiştirebilir, plan değiştirebilir veya iptal edebilirsin.",
+  "current": "Kullandığın plan",
+  "redirecting": "Ödeme sayfasına yönlendiriliyorsun…",
+  "quota": {
+    "label": "Bu ay {{used}}/{{limit}} görüşme",
+    "exhausted": "Bu ayki hakkın doldu",
+    "upgradeCta": "Planını yükselt"
+  },
+  "return": {
+    "processing": "Ödemen işleniyor…",
+    "processingHint": "Bu birkaç saniye sürebilir, sayfayı kapatma.",
+    "success": "Planın güncellendi.",
+    "successHint": "Yeni hakkın hemen kullanılabilir.",
+    "timeout": "Ödemen alındı ama planına henüz işlenmedi.",
+    "timeoutHint": "İşlem birkaç dakika sürebilir. Sayfayı yenileyebilir ya da daha sonra tekrar bakabilirsin.",
+    "toDashboard": "Panele dön"
+  },
+  "errors": {
+    "checkout": "Ödeme sayfası açılamadı. Lütfen tekrar dene.",
+    "portal": "Abonelik yönetimi açılamadı. Lütfen tekrar dene."
+  }
+}

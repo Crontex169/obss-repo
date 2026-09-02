@@ -38,6 +38,9 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/dashboard'))
 const AdminInterviewDetailPage = lazy(() => import('@/pages/admin/interview-detail'))
 const AdminStatsPage = lazy(() => import('@/pages/admin/stats'))
 const AdminReportsPage = lazy(() => import('@/pages/admin/reports'))
+// 010-odeme-abonelik: plan secimi ve odeme donusu.
+const PricingPage = lazy(() => import('@/pages/billing/pricing'))
+const BillingReturnPage = lazy(() => import('@/pages/billing/return'))
 
 // Authenticated sayfalar AppShell (ortak header/nav) ile sarmalanir — sayfa
 // bilesenlerinin kendisi Router'dan bagimsiz kalir (izole test edilebilir),
@@ -89,6 +92,10 @@ function App() {
 
             <Route path="/dashboard" element={withShell(<DashboardPage />)} />
             <Route path="/settings" element={withShell(<SettingsPage />)} />
+            <Route path="/billing" element={withShell(<PricingPage />)} />
+            {/* success_url hedefi. Plani YUKSELTMEZ, yalnizca okur; yukseltme
+                imzasi dogrulanmis webhook ile yapilir (FR-012). */}
+            <Route path="/billing/return" element={withShell(<BillingReturnPage />)} />
             <Route path="/interviews" element={withShell(<InterviewListPage />)} />
             <Route path="/interview/new" element={withShell(<NewInterviewPage />)} />
             <Route path="/interview/:id" element={withShell(<InterviewSessionPage />)} />

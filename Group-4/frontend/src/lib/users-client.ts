@@ -33,6 +33,10 @@ export interface CvProfile {
   updatedAt: string | null
 }
 
+// 010-odeme-abonelik: plan ve kalan hak. Kaynak sunucudur (billing/plan.ts);
+// istemci bu degerleri HESAPLAMAZ, oldugu gibi gosterir.
+export type PlanTier = 'free' | 'pro' | 'pro_plus'
+
 export interface AccountStatus extends KvkkConsentStatus {
   // Hesabin parolasi var mi (Google ile giren kullanicida yoktur). Hesap silme
   // onayinin bicimini belirler: parola girisi mi, yalnizca onay kutusu mu.
@@ -40,6 +44,12 @@ export interface AccountStatus extends KvkkConsentStatus {
   // Kayitli CV profili — yoksa null. CV METNI istemciye HIC gelmez, yalnizca
   // "var mi + hangi dosyadan + ne zaman" (sunucu tarafi veri asgarisi).
   cv: CvProfile | null
+  // Etkin plan. Sunucuda SAKLANMAZ, planTier + proUntil'den turetilir.
+  plan: PlanTier
+  // Bu takvim ayinda acilan gorusme sayisi. Silinen gorusmeler DAHILDIR —
+  // silme hak iade etmez, gosterilen sayi uygulanan sayiyla ayni olmali.
+  interviewsUsed: number
+  interviewsLimit: number
 }
 
 // §GET — KVKK onay durumu (dashboard mount'unda tek seferlik popup icin) ve

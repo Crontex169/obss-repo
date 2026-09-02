@@ -15,6 +15,7 @@ import trConsentGate from './locales/tr/consentGate.json'
 import trSupport from './locales/tr/support.json'
 import trAdminShell from './locales/tr/adminShell.json'
 import trAdmin from './locales/tr/admin.json'
+import trBilling from './locales/tr/billing.json'
 
 import enCommon from './locales/en/common.json'
 import enAppShell from './locales/en/appShell.json'
@@ -30,6 +31,7 @@ import enConsentGate from './locales/en/consentGate.json'
 import enSupport from './locales/en/support.json'
 import enAdminShell from './locales/en/adminShell.json'
 import enAdmin from './locales/en/admin.json'
+import enBilling from './locales/en/billing.json'
 
 // Butun namespace'ler bundle'a gomulu (lazy-load/http-backend YOK) — 2 sabit
 // dil disinda genisleme beklenmiyor.
@@ -61,6 +63,7 @@ void i18n.use(initReactI18next).init({
     'adminShell',
     'admin',
     'support',
+    'billing',
   ],
   resources: {
     tr: {
@@ -78,6 +81,7 @@ void i18n.use(initReactI18next).init({
       adminShell: trAdminShell,
       admin: trAdmin,
       support: trSupport,
+      billing: trBilling,
     },
     en: {
       common: enCommon,
@@ -94,6 +98,7 @@ void i18n.use(initReactI18next).init({
       adminShell: enAdminShell,
       admin: enAdmin,
       support: enSupport,
+      billing: enBilling,
     },
   },
   interpolation: {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, FileText, FileUp, Link2 } from 'lucide-react'
 import {
   createInterview,
@@ -39,6 +39,8 @@ export default function NewInterviewPage({
   initialLevel?: ExperienceLevel
 }) {
   const { t } = useTranslation('interview')
+  // Kota metinleri billing namespace'inde durur (plan sayfasiyla ayni sozluk).
+  const { t: tBilling } = useTranslation('billing')
   const navigate = useNavigate()
   const [source, setSource] = useState<'text' | 'pdf' | 'url'>('text')
   const [jobPostingText, setJobPostingText] = useState('')
@@ -62,6 +64,8 @@ export default function NewInterviewPage({
   const [adaptiveEnabled, setAdaptiveEnabled] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
+  // Kota asiminda form altinda plan yukseltme cagrisi gosterilir.
+  const [quotaExceeded, setQuotaExceeded] = useState(false)
 
   // Kayitli CV yalnizca ROZET icin okunur; metni istemciye hic gelmez.
   // Basarisiz olursa sessizce gecilir — form CV olmadan da tam calisir.
@@ -122,7 +126,14 @@ export default function NewInterviewPage({
       navigate(`/interview/${result.interview.id}`)
     } catch (err) {
       setStatus('error')
-      if (
+      // 010-odeme-abonelik: kota asimi (402) ile hiz siniri (429) AYRI
+      // durumlardir. 402 "planini yukselt" demektir ve kullaniciyi beklemeye
+      // degil plan sayfasina yonlendirmek gerekir; genel hata metni gostermek
+      // kullaniciyi bos yere tekrar denemeye iterdi.
+      if (err instanceof ApiError && err.status === 402) {
+        setQuotaExceeded(true)
+        setError(err.message)
+      } else if (
         err instanceof ApiError &&
         err.body.details?.reason === 'not_a_job_posting'
       ) {
@@ -334,7 +345,20 @@ export default function NewInterviewPage({
           </span>
         </label>
 
-        {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
+        {error && (
+          <div className="space-y-1">
+            <p className="text-sm text-[var(--color-danger)]">{error}</p>
+            {/* Kota asiminda beklemek ise yaramaz; tek cikis plan yukseltmek. */}
+            {quotaExceeded && (
+              <Link
+                to="/billing"
+                className="text-sm font-medium text-[var(--color-accent)] underline"
+              >
+                {tBilling('quota.upgradeCta')}
+              </Link>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end">
           <button
