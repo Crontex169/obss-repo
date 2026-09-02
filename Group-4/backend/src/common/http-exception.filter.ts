@@ -14,11 +14,9 @@ import {
 import type { Response } from 'express';
 import { STATUS_CODES } from 'node:http';
 
-//Tek noktadan hata biçimlendirme. Uygulamanın herhangi bir yerinde fırlatılan her hatayı yakalayıp aynı kalıba 
-// ( { statusCode, error, message, details? } ) çevirir. Beklenmedik (kod hatası gibi) durumlarda stack trace/SQL/dosya yolu asla istemciye gitmez — 
+//Tek noktadan hata biçimlendirme. Uygulamanın herhangi bir yerinde fırlatılan her hatayı yakalayıp aynı kalıba
+// ( { statusCode, error, message, details? } ) çevirir. Beklenmedik (kod hatası gibi) durumlarda stack trace/SQL/dosya yolu asla istemciye gitmez —
 // sadece sunucu logunda kalır, kullanıcıya jenerik "beklenmeyen hata" mesajı döner.
-
-
 
 // Ortak hata zarfi — docs/API_CONVENTIONS.md 2.
 // { statusCode, error, message, details? }

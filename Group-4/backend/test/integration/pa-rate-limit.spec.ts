@@ -3,6 +3,7 @@ import {
   createPreAssessmentTestApp,
   type PreAssessmentTestApp,
 } from './helpers/pa-app';
+import { fakeQuestions } from './helpers/fake-questions';
 import { registerAndSignIn } from './helpers/auth-session';
 import {
   fakeCompetencyReport,
@@ -98,18 +99,9 @@ describe('Hiz siniri (POST /api/pre-assessments)', () => {
     // Ayni kullanicinin 002-interview POST /api/interviews kotasi (3/saat)
     // AYRI sayac oldugu icin hala musait olmali (429 DEGIL).
     ctx.fakeLlm.always({
-      content: {
-        position: null,
-        questions: [
-          {
-            type: 'open_ended',
-            text: 'Deneyiminizi anlatir misiniz?',
-            options: [],
-            tip: null,
-            rationale: null,
-          },
-        ],
-      },
+      // Katmanli plana uyan tek soruluk yanit — plan fakeQuestions uzerinden
+      // uretim koduyla ayni kaynaktan gelir.
+      content: { ...fakeQuestions(1), position: null },
     });
     const interviewRes = await request(ctx.app.getHttpServer())
       .post('/api/interviews')

@@ -3,7 +3,8 @@ import { LogOut } from 'lucide-react'
 import { SupportLink } from '@/components/support-link'
 import { useSession } from '@/lib/auth-client'
 import { DeleteAccountDialog } from '@/components/settings/delete-account-dialog'
-import { getKvkkConsentStatus } from '@/lib/users-client'
+import { getKvkkConsentStatus, type CvProfile } from '@/lib/users-client'
+import { CvProfileCard } from '@/components/settings/cv-profile-card'
 import { useSignOut } from '@/lib/use-sign-out'
 import { useAppLanguage, useTranslation } from '@/lib/i18n/language-provider'
 import { useAppTheme } from '@/lib/theme/theme-provider'
@@ -22,6 +23,9 @@ export default function SettingsPage() {
   const { theme, setTheme } = useAppTheme()
   const handleSignOut = useSignOut()
   const [hasPassword, setHasPassword] = useState<boolean | null>(null)
+  // Kayitli CV profili. hasPassword ile AYNI istekten gelir — ikinci bir
+  // GET /api/users/me acilmaz.
+  const [cv, setCv] = useState<CvProfile | null>(null)
 
   const user = data?.user
   // role, Better Auth additionalFields ile oturum kullanicisinda tasinir.
@@ -36,7 +40,9 @@ export default function SettingsPage() {
     let cancelled = false
     void getKvkkConsentStatus()
       .then((status) => {
-        if (!cancelled) setHasPassword(status.hasPassword)
+        if (cancelled) return
+        setHasPassword(status.hasPassword)
+        setCv(status.cv)
       })
       .catch(() => {
         // Okunamadiysa silme bolumu gosterilmez; kullanici sayfayi yenileyebilir.
@@ -87,6 +93,21 @@ export default function SettingsPage() {
         </div>
         <ThemeToggle theme={theme} onChange={setTheme} />
       </section>
+
+      {/* Kalici CV profili: bir kez yuklenir, sonraki her gorusmede soru
+          uretimine baglam olur. Admin'de gosterilmez — admin gorusme
+          olusturmaz. */}
+      {!isAdmin && (
+        <section className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--color-text-muted)]">
+              {t('cv.heading')}
+            </h2>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{t('cv.description')}</p>
+          </div>
+          <CvProfileCard cv={cv} onChange={setCv} />
+        </section>
+      )}
 
       {/* Issue #51 — kullanicinin "yardim" ararken bakacagi ikinci dogal yer. */}
       <section className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6">

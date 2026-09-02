@@ -3,6 +3,7 @@
 // oturumdan alınır, istek gövdesinden değil — böylece biri başkasının
 // hesabını silmeye çalışamaz.
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,9 +12,13 @@ import {
   HttpStatus,
   Post,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
+import { resolveUploadHardLimitBytes } from '../pdf/pdf-extraction.service';
 import { SessionGuard } from '../auth/guards/session.guard';
 import type { AuthUser } from '../auth/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -23,6 +28,8 @@ import {
 } from './dto/delete-account.dto';
 import { UsersService } from './users.service';
 
+type MulterFile = Express.Multer.File;
+
 @Controller('api/users/me')
 @UseGuards(SessionGuard)
 export class UsersController {
@@ -31,6 +38,29 @@ export class UsersController {
   @Get()
   getMe(@Req() req: Request & { user?: AuthUser }) {
     return this.usersService.getKvkkConsent(req.user!.id);
+  }
+
+  // Kalici CV profili (multipart, tek PDF alani: `cvFile`). Sert boyut siniri
+  // gorusme olusturmayla AYNI multer limitidir — iki uc noktada tek kural.
+  @Post('cv')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('cvFile', {
+      limits: { fileSize: resolveUploadHardLimitBytes() },
+    }),
+  )
+  async uploadCv(
+    @Req() req: Request & { user?: AuthUser },
+    @UploadedFile() file: MulterFile | undefined,
+  ) {
+    if (!file) throw new BadRequestException('CV dosyasi yuklenmedi.');
+    return this.usersService.saveCv(req.user!.id, file);
+  }
+
+  @Delete('cv')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteCv(@Req() req: Request & { user?: AuthUser }): Promise<void> {
+    await this.usersService.deleteCv(req.user!.id);
   }
 
   @Post('kvkk-consent')

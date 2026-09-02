@@ -3,6 +3,7 @@ import {
   checkRateLimit,
   recordFailedAttempt,
   resetAttempts,
+  signInAttemptOutcome,
 } from './rate-limit.config';
 
 // docs/SECURITY.md S12 — sayaclarin sinirsiz buyumesi.
@@ -42,5 +43,33 @@ describe('Siklik sinirlayici bellek siniri (S12)', () => {
     expect(checkRateLimit(email).blocked).toBe(true);
     resetAttempts(email);
     expect(checkRateLimit(email).blocked).toBe(false);
+  });
+});
+
+// docs/SECURITY.md S? / 2026-08-28 bulgusu: /sign-in/email sayaci "400 ve
+// ustu HER yaniti" basarisiz sayiyordu. E-postasi dogrulanmamis kullanici
+// DOGRU sifreyle 403 EMAIL_NOT_VERIFIED alir; 10 denemede kendi hesabini
+// kilitliyordu. Sayac artik yalnizca gercek kimlik tahmini basarisizliginda
+// (401) isler.
+describe('signInAttemptOutcome — hangi yanit sayaci isletir', () => {
+  it('401 (yanlis sifre / kayitsiz e-posta) sayaci artirir', () => {
+    expect(signInAttemptOutcome(401)).toBe('fail');
+  });
+
+  it('403 EMAIL_NOT_VERIFIED sayaci ARTIRMAZ (regresyon)', () => {
+    expect(signInAttemptOutcome(403)).toBe('ignore');
+  });
+
+  it('403 sayaci SIFIRLAMAZ da — baypas kapisi acilmaz', () => {
+    expect(signInAttemptOutcome(403)).not.toBe('reset');
+  });
+
+  it('429 ve sunucu hatalari sayaca dokunmaz', () => {
+    expect(signInAttemptOutcome(429)).toBe('ignore');
+    expect(signInAttemptOutcome(500)).toBe('ignore');
+  });
+
+  it('basarili giris sayaci sifirlar', () => {
+    expect(signInAttemptOutcome(200)).toBe('reset');
   });
 });

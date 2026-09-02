@@ -12,12 +12,8 @@ import {
 } from '@nestjs/throttler';
 import { logThrottled, setRetryAfter } from './throttle-response';
 
-
-
-//LLM çağıran uç noktalarda (görüşme oluşturma, cevap gönderme, rapor tekrar deneme) kullanıcı başına saatlik kota uygulayan bekçi.  @LlmRateLimit(3)  gibi süslenerek 
+//LLM çağıran uç noktalarda (görüşme oluşturma, cevap gönderme, rapor tekrar deneme) kullanıcı başına saatlik kota uygulayan bekçi.  @LlmRateLimit(3)  gibi süslenerek
 // her uç noktaya farklı limit (3, 5, 60/saat) verilebiliyor; sayaç istek öncesi artıyor, yani başarısız LLM çağrısı da kotayı tüketiyor (kötüye kullanımı önlemek için).
-
-
 
 // Saatlik LLM cagri siniri — FR-022, docs/API_CONVENTIONS.md 3.5.
 // Insa sahibi: 002-interview. 003-pre-assessment bunu 5/saat ile DEVRALIR.

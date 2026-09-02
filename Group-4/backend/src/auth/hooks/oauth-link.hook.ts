@@ -6,7 +6,7 @@ import { decodeJwt } from 'jose';
 import { PrismaClient } from '@prisma/client';
 import { APIError } from 'better-auth/api';
 
-//"Admin hesabı Google ile giriş yapamaz" kuralını üç farklı Google giriş yolunda (id-token, One Tap, tarayıcı yönlendirmesi) ayrı ayrı uygulayan üç fonksiyon içerir 
+//"Admin hesabı Google ile giriş yapamaz" kuralını üç farklı Google giriş yolunda (id-token, One Tap, tarayıcı yönlendirmesi) ayrı ayrı uygulayan üç fonksiyon içerir
 // — çünkü her yolun istek gövdesi farklı şekilde geliyor.
 
 // Hikaye 3 kriter 4 / FR-006: admin hesabina Google ile oturum acilmaz.

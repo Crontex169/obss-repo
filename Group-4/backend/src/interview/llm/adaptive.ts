@@ -11,6 +11,12 @@ import { ON_DEGERLENDIRME_ETIKET } from './question-generation';
 // Uyarlanan sorunun tipi CAGRI BAZINDA sabitlenir: hedef soru coktan secmeliyse
 // secenekli, acik uclu ise seceneksiz donmeli — aksi halde uyarlama sorunun
 // bicimini degistirir ve sozlu modda multiple_choice sizabilir (FR-004).
+// Uyarlama HEM degerlendirme (cevap ne kadar guclu) HEM uretim (yeni soru
+// metni) yapar — iki ucun ortasi. Cok dusuk olursa uyarlanan soru taslaktan
+// neredeyse hic ayrilmaz, cok yuksek olursa taslagin KONUSUNU korumasi gereken
+// kural (bkz. sistem promptu) esnetilir.
+export const ADAPTIVE_TEMPERATURE = 0.4;
+
 export function buildAdaptiveSchema(
   targetType: 'multiple_choice' | 'open_ended',
 ) {

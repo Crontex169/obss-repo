@@ -45,11 +45,15 @@ async function mockSession(page: Page) {
 
 /** ADR-0010: tarayici destegi olmadigi durumu simule eder (FR-025). */
 async function stubVoiceUnsupported(page: Page) {
+  // ADR-0014: STT artik MediaRecorder+getUserMedia+AudioContext'e bagli
+  // (SpeechRecognition'a DEGIL). Gercek tarayicida (Chromium) bu API'ler
+  // VARDIR — yalnizca SpeechRecognition'i silmek recordingSupported()'i
+  // false yapmaz ve senaryo sessizce anlamsizlasirdi.
   await page.addInitScript(() => {
     // @ts-expect-error test stub
-    delete window.SpeechRecognition
+    delete window.MediaRecorder
     // @ts-expect-error test stub
-    delete window.webkitSpeechRecognition
+    delete window.AudioContext
     // @ts-expect-error test stub
     delete window.speechSynthesis
   })

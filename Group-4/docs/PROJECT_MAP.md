@@ -87,8 +87,9 @@ backend/src/
 │   ├── mail/verification-mailer.ts  Doğrulama + şifre sıfırlama e-postaları (console|resend, ADR-0008)
 │   ├── rate-limit.config.ts      Throttling (başarısız login + sıfırlama isteği sayaçları)
 │   └── admin/admin.controller.ts  Admin oturum uçları (001 kapsamı)
-├── users/                        Kullanıcı profili + KVKK onayı (001 FR-020) + hesap silme
-│   ├── users.controller.ts        `GET /api/users/me`, `POST /api/users/me/kvkk-consent`, `DELETE /api/users/me` (hesabı sil)
+├── users/                        Kullanıcı profili + KVKK onayı (001 FR-020) + hesap silme + CV profili
+│   ├── users.controller.ts        `GET /api/users/me`, `POST /api/users/me/kvkk-consent`, `DELETE /api/users/me`,
+│   │                              `POST /api/users/me/cv` + `DELETE /api/users/me/cv` (kalıcı CV profili)
 │   └── dto/delete-account.dto.ts   Hesap silme girdi şeması (Zod)
 ├── admin/                        005-admin dilimi
 │   ├── admin-interviews.controller.ts  `GET /api/admin/interviews`, `/:id` (salt okunur)
@@ -99,7 +100,12 @@ backend/src/
 │   ├── interview.controller.ts / .service.ts / .module.ts
 │   │     Uçlar: `POST /api/interviews`, `GET /api/interviews`, `GET /:id`,
 │   │     `POST /:id/answers`, `GET /:id/report`, `POST /:id/report/retry`,
-│   │     `POST /:id/panel-events` (sözlü mod real-time AI asistan olayları), `DELETE /:id`
+│   │     `POST /:id/panel-events` (sözlü mod real-time AI asistan olayları), `DELETE /:id`,
+│   │     `POST /api/interviews/cv-match` (ilan × CV uyum analizi — görüşme oluşturmaz),
+│   │     `POST /:id/share` + `DELETE /:id/share` (rapor paylaşım linki),
+│   │     `POST /:id/transcribe` (sözlü mod STT — ADR-0014)
+│   ├── shared-report.controller.ts  `GET /api/shared-reports/:token` — ANONİM okuma
+│   │                              (oturum yok; yetkilendirme token'ı bilmek)
 │   ├── dto/                      Zod şemaları (soru sayısı, mod, cevap, panel-event)
 │   ├── llm/                      Soru üretimi + adaptif değerlendirme + rapor prompt entegrasyonu
 │   └── ownership/                 Interview'ın sahibi mi kontrolü (auth/ownership'i kullanır)
@@ -117,6 +123,12 @@ backend/src/
 │   ├── schema-to-provider.ts       Zod şema → JSON Schema (strict mod, yalnızca gpt-oss-20b/120b'de)
 │   ├── token-usage.service.ts      Her çağrıda input/output token + tahmini maliyeti TokenUsage tablosuna yazar
 │   └── llm.errors.ts               Hata sınıfları (timeout, şema doğrulama hatası, boş yanıt)
+├── transcription/                Cross-cutting STT katmanı (ADR-0014, sözlü mod)
+│   ├── transcription.provider.ts     Port: `TranscriptionProvider` (llm.provider.ts deseninin kopyası)
+│   ├── transcription.service.ts      Controller'ın gördüğü tek yüz + zaman aşımı/boyut sabitleri
+│   ├── transcription.module.ts       `GROQ_API_KEY` varsa Groq, yoksa "yapılandırılmamış" adapter
+│   └── providers/                    `groq-transcription.provider.ts` (whisper-large-v3-turbo),
+│                                     `unconfigured-transcription.provider.ts`
 ├── pdf/pdf-extraction.service.ts   İş ilanı PDF'inden metin çıkarma (unpdf, ADR-0009)
 ```
 
@@ -183,6 +195,9 @@ frontend/src/
 │   ├── settings/                     Ayarlar bileşenleri — `delete-account-dialog.tsx` (hesap silme onayı)
 │   ├── logo.tsx
 │   └── ui/                          shadcn/ui bileşenleri (Button, Card, Dialog, Chart, ...)
+│   Yeni: `interview/cv-match-panel.tsx` (ilan × CV uyumu),
+│   `interview/share-report-button.tsx` + `interview/report-sections.tsx` (rapor gövdesi — sahip
+│   ekranı ve paylaşılan sayfa AYNI bileşeni kullanır), `settings/cv-profile-card.tsx`
 └── pages/
     ├── login.tsx / register.tsx / verify-email.tsx     001-auth-rol
     ├── forgot-password.tsx / reset-password.tsx        006-sifre-sifirlama
@@ -191,6 +206,8 @@ frontend/src/
     ├── settings.tsx                                       Ayarlar — uygulama dili (TR/EN) + tema (açık/koyu) + hesap silme
     ├── interview/{list,new,session,report}.tsx           002-interview ekranları
     ├── pre-assessment/{list,new,report}.tsx               003-pre-assessment ekranları
+    ├── shared-report.tsx                        `/r/:token` — paylaşım linkiyle açılan HERKESE AÇIK
+    │                                            rapor (AppShell YOK, salt okunur)
     └── admin/{login,dashboard,stats,interview-detail}.tsx 005-admin ekranları
 ```
 
@@ -269,8 +286,8 @@ seçimi için yapılan deneysel doğrulama, T001).
 
 | Model | Ait olduğu dilim | Not |
 |-------|------|-----|
-| `User`, `Session`, `Account`, `Verification` | 001-auth-rol | Better Auth çekirdek tabloları, `@@map` ile küçük harf tablo adı; `User.role` = "user"\|"admin"; `User.kvkkConsentAt` = KVKK onay damgası (null → popup gösterilir, FR-020); `Verification` 006-sifre-sifirlama sıfırlama token'larını da taşır |
-| `Interview`, `Question`, `Answer`, `Report` | 002-interview | PascalCase tablo adı (`@@map` yok); soft-delete `deletedAt` alanı (004-history bunu kullanır) |
+| `User`, `Session`, `Account`, `Verification` | 001-auth-rol | Better Auth çekirdek tabloları, `@@map` ile küçük harf tablo adı; `User.role` = "user"\|"admin"; `User.cvText`/`cvFileName`/`cvUpdatedAt` = kalıcı CV profili (PDF DEĞİL, çıkarılmış metin); `User.kvkkConsentAt` = KVKK onay damgası (null → popup gösterilir, FR-020); `Verification` 006-sifre-sifirlama sıfırlama token'larını da taşır |
+| `Interview`, `Question`, `Answer`, `Report` | 002-interview | PascalCase tablo adı (`@@map` yok); soft-delete `deletedAt` alanı (004-history bunu kullanır); `shareToken`/`shareExpiresAt` — rapor paylaşım linki (süreli, iptal edilebilir) |
 | `TokenUsage` | Cross-cutting (şema sahibi: 003-pre-assessment) | Her LLM çağrısında provider/model/token/maliyet kaydı — 005-admin'in istatistik ekranı bunu okuyacak |
 | `PreAssessment`, `CompetencyReport` | 003-pre-assessment | Meslek-bağımsız girdi enum'ları; `experienceLevel` türetilmiş alan (002-interview FR-021 bunu okur) |
 
@@ -303,6 +320,13 @@ oluşturuldu — 003 bunları **devralır**, yeniden tanımlamaz.
   003-pre-assessment, 004-history, 005-admin, 006-sifre-sifirlama; ayrıca
   **008-onay-akisi** (onay kapısı, Approved) ve **007-ui-design** (iniş sayfası +
   auth UI + responsive, PR #80) uygulandı
+- ✅ **2026-08-31 turunda eklenenler:** kalıcı **CV profili** (Ayarlar'da bir kez
+  yüklenir, her görüşmede soru üretimine bağlam olur — `useStoredCv` ile kapatılabilir),
+  **ilan × CV uyum analizi** (`POST /api/interviews/cv-match`, yeni `cv_job_match`
+  LLM operasyonu), **rapor paylaşım linki** (süreli + iptal edilebilir token,
+  `/r/:token` anonim sayfa) ve **sözlü mod STT'nin Groq Whisper'a taşınması**
+  (ADR-0014 — `backend/src/transcription/**`, `stt` hız-sınırı kovası,
+  `MediaRecorder` tabanlı istemci kaydı; TTS değişmedi)
 - ✅ **Sonradan eklenen özellikler (docs'a bu turda işlendi):** açık/koyu **tema**
   (`lib/theme/`, Ayarlar), **hesap silme** (`DELETE /api/users/me` + `settings/`
   bileşeni), sözlü mod **speech** ileri katmanı (`lib/speech/*`), görüşme

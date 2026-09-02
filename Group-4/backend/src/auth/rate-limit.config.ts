@@ -13,12 +13,10 @@
 // burada uygulanir (bkz. better-auth.config.ts). Gercek CAPTCHA ENTEGRE
 // EDILMEMISTIR (kapsam disi) — yalnizca sayac + artan gecikme.
 
-
 /**
- * E-posta/kullanıcı bazlı tüm hız sınırlama sayaçlarının (başarısız giriş denemesi, parola sıfırlama isteği, 
+ * E-posta/kullanıcı bazlı tüm hız sınırlama sayaçlarının (başarısız giriş denemesi, parola sıfırlama isteği,
  * hesap silme denemesi) bellek içi (in-memory) mantığını tutar; sayaçların sınırsız büyümesini önleyen bir "budama" mekanizması da içerir.
  */
-
 
 interface AttemptRecord {
   failureCount: number;
@@ -139,6 +137,32 @@ export function recordFailedAttempt(email: string): void {
 
 export function resetAttempts(email: string): void {
   attempts.delete(email.toLowerCase());
+}
+
+/**
+ * Bir /sign-in/email yanitinin HTTP durumundan sayac eylemini turetir.
+ * Kural better-auth.config.ts'in `after` kancasinda GOMULU DEGIL burada
+ * durur ki tek basina test edilebilsin — yanlis durum kumesini saymak bu
+ * mekanizmanin en sessiz ariza bicimidir.
+ *
+ *   'fail'   -> gercek bir kimlik tahmini basarisiz oldu (401: yanlis sifre
+ *               veya kayitli olmayan e-posta; Better Auth ikisine de ayni
+ *               genel 401'i doner). Yalnizca bu sayaci artirir.
+ *   'reset'  -> giris basarili; sayac temizlenir.
+ *   'ignore' -> 401 DISINDAKI hatalar. Onemli ornek: e-postasi henuz
+ *               dogrulanmamis kullanici DOGRU sifreyle 403 EMAIL_NOT_VERIFIED
+ *               alir. Bunu "basarisiz deneme" saymak kullanicinin kendi
+ *               hesabini 10 denemede kilitlemesine yol aciyordu — orada tahmin
+ *               edilen bir sey yok. Sifirlamamak da bilincli: sifirlasaydik
+ *               dogrulanmamis hesap gercek denemeleri temizleyen bir baypas
+ *               kapisi olurdu (429 ve 5xx icin de ayni gerekce).
+ */
+export function signInAttemptOutcome(
+  status: number,
+): 'fail' | 'reset' | 'ignore' {
+  if (status === 401) return 'fail';
+  if (status < 400) return 'reset';
+  return 'ignore';
 }
 
 // ---------------------------------------------------------------------------

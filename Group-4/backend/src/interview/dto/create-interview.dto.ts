@@ -15,7 +15,28 @@ export const createInterviewSchema = z
     questionCount: z.coerce.number().int().min(5).max(20),
     mode: z.enum(['written', 'voice']),
     level: z.enum(['intern', 'junior', 'mid', 'senior']),
-    adaptiveEnabled: z.coerce.boolean().default(false),
+    // z.coerce.boolean() KULLANILMAZ: Boolean("false") === true'dur. Istemci
+    // multipart gonderdiginde (frontend'in TEK yolu) alan "false" STRING'i
+    // olarak gelir ve coerce onu true'ya cevirirdi — yani adaptif akis
+    // kapatilamaz, her cevapta ek LLM cagrisi yapilirdi. Testler bunu
+    // gormuyordu: JSON govdeyle gercek boolean gonderiyorlar.
+    adaptiveEnabled: z
+      .preprocess(
+        (v) => (v === 'true' ? true : v === 'false' ? false : v),
+        z.boolean(),
+      )
+      .default(false),
+    // Ayarlar'da kayitli CV bu gorusmede baglam olarak kullanilsin mi?
+    // Varsayilan true: kullanici CV'sini kaydettiyse amaci zaten kullanilmasi.
+    // Alan bu istekte CV dosyasi da yuklendiyse ETKISIZDIR — yuklenen dosya
+    // her zaman kayitli CV'yi ezer (bkz. interview.service.ts create()).
+    // adaptiveEnabled ile ayni preprocess: multipart'ta "false" STRING gelir.
+    useStoredCv: z
+      .preprocess(
+        (v) => (v === 'true' ? true : v === 'false' ? false : v),
+        z.boolean(),
+      )
+      .default(true),
   })
   .superRefine((data, ctx) => {
     if (data.jobPostingSource === 'text') {

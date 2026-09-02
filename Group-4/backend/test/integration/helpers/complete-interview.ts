@@ -49,6 +49,14 @@ export function fakeReport(overrides: Record<string, unknown> = {}) {
     overallImpression: 'Aday genel olarak yeterli bir performans gosterdi.',
     strengths: ['Net iletisim', 'Teknik temel'],
     improvementAreas: ['Derinlemesine ornek verme'],
+    // Rubrik: model once bandi secer, sonra o bandin araliginda sayi verir.
+    // Buradaki skorlar "guclu" bandinin (70-84) icinde — bant ile skor
+    // celisirse uretim kodu uyari loglar (bkz. scoreMatchesBand).
+    calibration: {
+      technical: { band: 'guclu', evidenceOrders: [1] },
+      behavioral: { band: 'guclu', evidenceOrders: [1] },
+      general: { band: 'guclu', evidenceOrders: [1] },
+    },
     scores: { technical: 72, behavioral: 80, general: 75 },
     additionalNotes: null,
     ...overrides,

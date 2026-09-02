@@ -51,6 +51,12 @@ export interface GenerateStructuredArgs<T> {
    * katman cikti hacmine gore olcekleyip gecirmelidir (T125, §3).
    */
   maxTokens?: number;
+  /**
+   * Ornekleme sicakligi (bkz. LlmCallArgs.temperature). Verilmezse saglayici
+   * varsayilani. LlmService BURADA BIR VARSAYILAN SECMEZ: dogru deger cagrinin
+   * amacina baglidir (uretim/degerlendirme) ve o bilgi bu katmanda YOKTUR.
+   */
+  temperature?: number;
   operation: LlmOperation;
   userId: string;
   interviewId?: string;
@@ -85,6 +91,7 @@ export class LlmService {
       userData: args.userData,
       timeoutMs,
       maxTokens: args.maxTokens ?? DEFAULT_MAX_TOKENS,
+      temperature: args.temperature,
     };
 
     // Cagri ve MALIYET KAYDI ayni yapilandirmayi kullanmak ZORUNDA: ikisi

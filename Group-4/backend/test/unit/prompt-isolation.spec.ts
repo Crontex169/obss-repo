@@ -168,6 +168,9 @@ describe('prompt izolasyonu', () => {
             questionText: 'Soru',
             options: [],
             answerContent: 'Cevap',
+            topic: null,
+            layer: null,
+            evaluationSummary: null,
           },
         ],
       });
@@ -182,7 +185,15 @@ describe('prompt izolasyonu', () => {
       const data = buildTranscript({
         position: null,
         pairs: [
-          { order: 1, questionText: 'S', options: [], answerContent: 'C' },
+          {
+            order: 1,
+            questionText: 'S',
+            options: [],
+            answerContent: 'C',
+            topic: null,
+            layer: null,
+            evaluationSummary: null,
+          },
         ],
       });
       expect(data).not.toContain('Pozisyon:');

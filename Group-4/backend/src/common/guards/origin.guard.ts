@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-//CSRF (siteler arası sahte istek) koruması. POST/PUT/PATCH/DELETE gibi durum değiştiren isteklerde 
-//  Origin  başlığının bilinen adresler listesinde (frontend/backend URL'i) olup olmadığını kontrol eder; 
+//CSRF (siteler arası sahte istek) koruması. POST/PUT/PATCH/DELETE gibi durum değiştiren isteklerde
+//  Origin  başlığının bilinen adresler listesinde (frontend/backend URL'i) olup olmadığını kontrol eder;
 // uymuyorsa 403. Çerezin  sameSite  ayarı gevşetilse bile bu guard ayrı bir savunma katmanı sağlıyor.
 
 // docs/SECURITY.md S5 — CSRF savunmasi.

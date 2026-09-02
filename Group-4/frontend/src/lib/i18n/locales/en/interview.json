@@ -33,7 +33,8 @@
       "emptyUrl": "The job posting link cannot be empty.",
       "notJobPosting": "The text you entered wasn't recognized as a job posting. Please check it and try again.",
       "createFailed": "Couldn't create the interview"
-    }
+    },
+    "useStoredCv": "Use my saved CV ({{fileName}}) for this interview"
   },
   "session": {
     "loading": "Loading...",
@@ -149,13 +150,15 @@
       "speaking": "Assistant is speaking",
       "listening": "Listening to you",
       "reviewing": "Review your answer",
-      "idle": "Ready"
+      "idle": "Ready",
+      "transcribing": "Transcribing"
     },
     "reviewHint": "Here's what I captured. Edit it if needed, then send.",
     "speakAgain": "Speak again",
     "autoFlowLabel": "Hands-free flow",
     "autoFlowHint": "Turn this off to control the microphone and transitions yourself.",
-    "skipSpeech": "Skip reading"
+    "skipSpeech": "Skip reading",
+    "transcribing": "Transcribing audio..."
   },
   "hintPanel": {
     "trigger": "Show Hint",
@@ -200,5 +203,38 @@
     "sentToast": "Thanks, we received your report.",
     "emptyError": "Please write a message.",
     "sendFailed": "Couldn't send the report"
+  },
+  "cvMatch": {
+    "heading": "Job–CV match",
+    "description": "See your gaps before the interview starts.",
+    "run": "Analyse match",
+    "running": "Analysing…",
+    "failed": "Could not analyse the match. Please try again.",
+    "matched": "Matching skills",
+    "missing": "Missing skills",
+    "required": "required",
+    "focus": "Work on this first",
+    "bands": {
+      "zayif": "weak match",
+      "gelisen": "developing match",
+      "yeterli": "adequate match",
+      "guclu": "strong match",
+      "ustun": "outstanding match"
+    }
+  },
+  "share": {
+    "create": "Create share link",
+    "creating": "Creating…",
+    "copy": "Copy",
+    "copied": "Link copied.",
+    "copyManually": "Link ready — select it to copy.",
+    "revoke": "Revoke",
+    "revoked": "Share link revoked.",
+    "revokeFailed": "Could not revoke the link. Please try again.",
+    "failed": "Could not create a share link. Please try again.",
+    "expiresAt": "This link works until {{date}}. Anyone with the link can see the report.",
+    "notFound": "This share link is invalid or has expired.",
+    "goHome": "Back to home",
+    "readOnlyNotice": "Shared report — read-only view."
   }
 }

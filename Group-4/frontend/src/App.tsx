@@ -30,6 +30,8 @@ const NewInterviewPage = lazy(() => import('@/pages/interview/new'))
 const InterviewSessionPage = lazy(() => import('@/pages/interview/session'))
 const InterviewReportPage = lazy(() => import('@/pages/interview/report'))
 const InterviewListPage = lazy(() => import('@/pages/interview/list'))
+// Paylasim linkiyle acilan herkese acik rapor — oturum ve AppShell YOK.
+const SharedReportPage = lazy(() => import('@/pages/shared-report'))
 const NewPreAssessmentPage = lazy(() => import('@/pages/pre-assessment/new'))
 const PreAssessmentReportPage = lazy(() => import('@/pages/pre-assessment/report'))
 const AdminDashboardPage = lazy(() => import('@/pages/admin/dashboard'))
@@ -91,6 +93,7 @@ function App() {
             <Route path="/interview/new" element={withShell(<NewInterviewPage />)} />
             <Route path="/interview/:id" element={withShell(<InterviewSessionPage />)} />
             <Route path="/interview/:id/report" element={withShell(<InterviewReportPage />)} />
+            <Route path="/r/:token" element={<SharedReportPage />} />
             <Route path="/pre-assessment/new" element={withShell(<NewPreAssessmentPage />)} />
             <Route path="/pre-assessment/:id" element={withShell(<PreAssessmentReportPage />)} />
 

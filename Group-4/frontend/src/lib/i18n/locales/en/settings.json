@@ -15,6 +15,17 @@
     "light": "Light",
     "dark": "Dark"
   },
+  "cv": {
+    "heading": "CV profile",
+    "description": "Upload your CV once and new interviews are personalised from it automatically. The file itself is not stored, only the text extracted from it.",
+    "remove": "Remove",
+    "uploaded": "CV saved.",
+    "uploadFailed": "Could not upload the CV. Please try again.",
+    "removed": "CV removed.",
+    "removeFailed": "Could not remove the CV. Please try again.",
+    "busy": "Working…",
+    "updatedAt": "Updated: {{date}}"
+  },
   "deleteAccount": {
     "heading": "Delete account",
     "description": "Your account is permanently deleted along with your interviews, pre-assessments and reports. This cannot be undone.",

@@ -21,6 +21,13 @@ import {
 //
 // 2026-08-04: kural 3 (meslek-bagimsizlik) ve kural 4'un ikinci cumlesi (injection
 // sertlestirmesi) EKLENDI - bu dilim artik serbest metin kabul ediyor.
+// Yetkinlik raporu da bir OLCUM'dur (bkz. interview/llm/report.ts):
+// ayni anket cevaplari ayni profili uretmeli. Tam 0 DEGIL — cikti serbest
+// metin ozetlerden olusuyor ve 0'da model kalip cumlelere saplanip her
+// adaya neredeyse ayni ozeti yaziyor; 0.2 profili sabit tutarken anlatimi
+// adaya gore ayirmaya yetiyor.
+export const COMPETENCY_REPORT_TEMPERATURE = 0.2;
+
 export function buildCompetencyReportSystemPrompt(): string {
   return [
     'Sen bir kariyer ve ise alim danismanisin. Gorevin, adayin BEYAN ETTIGI deneyim,',

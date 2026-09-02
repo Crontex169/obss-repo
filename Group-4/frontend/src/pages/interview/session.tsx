@@ -117,7 +117,14 @@ export default function InterviewSessionPage() {
         // Seslendirilen metin ARAYUZ dilinden degil, GORUSME dilinden gelir:
         // Turkce arayuzden baslatilan Ingilizce gorusme Turkce kapanmamali.
         const speakT = i18n.getFixedT(interview.language, 'interview')
-        speak(speakT('voiceControls.closing'), interview.language)
+        const closing = speakT('voiceControls.closing')
+        // BIR TICK GECIKME sart: yukaridaki setQuestion(null) VoiceControls'u
+        // unmount ediyor ve unmount temizligi kendi okumasini iptal ediyor.
+        // Kapanis burada SENKRON baslatilsaydi, aday soru okunurken cevabini
+        // gonderdiginde o temizlik kapanisi da kesecekti (React state flush'i
+        // bu fonksiyondan SONRA calisir). Sifir gecikmeli timeout, kapanisi
+        // temizlikten sonraya alir.
+        window.setTimeout(() => speak(closing, interview.language), 0)
       }
     } catch (err) {
       setStatus('error')
@@ -233,6 +240,7 @@ export default function InterviewSessionPage() {
 
           {useVoice && question.type === 'open_ended' && (
             <VoiceControls
+              interviewId={id!}
               questionText={question.text}
               questionOrder={question.order}
               questionCount={interview.questionCount}

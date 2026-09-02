@@ -22,6 +22,9 @@ export interface CreateInterviewInput {
   mode: InterviewMode;
   level: ExperienceLevel;
   adaptiveEnabled: boolean;
+  // Ayarlar'da kayitli CV profili varsa bu gorusmede kullanilsin mi
+  // (varsayilan true). cvFile gonderildiyse ETKISIZDIR.
+  useStoredCv?: boolean;
 }
 
 export interface ApiErrorBody {
@@ -83,6 +86,10 @@ export async function createInterview(input: CreateInterviewInput) {
   form.set('mode', input.mode);
   form.set('level', input.level);
   form.set('adaptiveEnabled', String(input.adaptiveEnabled));
+  // Ayarlar'daki kayitli CV bu gorusmede kullanilsin mi (varsayilan true,
+  // sunucu tarafinda da ayni varsayilan). Bu istekte cvFile de gonderildiyse
+  // yuklenen dosya kazanir.
+  form.set('useStoredCv', String(input.useStoredCv ?? true));
 
   const res = await fetch(`${API_URL}/api/interviews`, {
     method: 'POST',
@@ -98,6 +105,29 @@ export async function createInterview(input: CreateInterviewInput) {
     interview: InterviewSummary;
     currentQuestion: Question | null;
   }>(res);
+}
+
+// ADR-0014 - sozlu mod STT'si (Groq Whisper, backend). Blob dosya adi
+// onemsiz (backend uzantiyi mimeType'tan cikarir); alan adi backend'deki
+// FileInterceptor('audio') ile ESLESMELIDIR.
+export async function transcribeAudio(
+  interviewId: string,
+  blob: Blob,
+  mimeType: string,
+) {
+  const form = new FormData();
+  form.set(
+    'audio',
+    blob,
+    `kayit.${mimeType.split('/')[1]?.split(';')[0] ?? 'webm'}`,
+  );
+
+  const res = await fetch(
+    `${API_URL}/api/interviews/${interviewId}/transcribe`,
+    { method: 'POST', credentials: 'include', body: form },
+  );
+
+  return parse<{ text: string }>(res);
 }
 
 export interface AnsweredPair {
@@ -251,4 +281,82 @@ export function logPanelEvent(
     // Sessizce yut: bu bir gozlemlenebilirlik olayidir, kullanici akisini
     // ETKILEMEMELIdir (FR-034 Kapsam Disi).
   });
+}
+
+// --- Ilan x CV uyum analizi (POST /api/interviews/cv-match) ---
+// Gorusme OLUSTURMAZ, hicbir sey kaydetmez: aday mulakata girmeden once
+// ilanla CV'si arasindaki bosluklari gorur.
+export interface CvMatchResult {
+  matchedSkills: { skill: string; evidence: string }[];
+  missingSkills: { skill: string; required: boolean; suggestion: string }[];
+  band: 'zayif' | 'gelisen' | 'yeterli' | 'guclu' | 'ustun';
+  matchScore: number;
+  focusAreas: string[];
+  summary: string;
+}
+
+export async function cvJobMatch(input: {
+  jobPostingSource: 'text' | 'pdf' | 'url';
+  jobPostingText?: string;
+  jobPostingFile?: File;
+  jobPostingUrl?: string;
+  cvFile?: File;
+  useStoredCv?: boolean;
+}) {
+  const form = new FormData();
+  form.set('jobPostingSource', input.jobPostingSource);
+  if (input.jobPostingText) form.set('jobPostingText', input.jobPostingText);
+  if (input.jobPostingFile) form.set('jobPostingFile', input.jobPostingFile);
+  if (input.jobPostingUrl) form.set('jobPostingUrl', input.jobPostingUrl);
+  if (input.cvFile) form.set('cvFile', input.cvFile);
+  form.set('useStoredCv', String(input.useStoredCv ?? true));
+
+  const res = await fetch(`${API_URL}/api/interviews/cv-match`, {
+    method: 'POST',
+    credentials: 'include',
+    // createInterview ile ayni gerekce: analiz dili secili UI dilinden cozulur.
+    headers: { 'Accept-Language': i18n.language },
+    body: form,
+  });
+
+  return parse<CvMatchResult>(res);
+}
+
+// --- Rapor paylasim linki ---
+// Uretim/iptal oturum ISTER (sahibi); okuma ucu (getSharedReport) oturumsuzdur.
+export interface ShareLink {
+  token: string
+  expiresAt: string
+}
+
+export async function createShareLink(interviewId: string) {
+  const res = await fetch(`${API_URL}/api/interviews/${interviewId}/share`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+  return parse<ShareLink>(res)
+}
+
+export async function revokeShareLink(interviewId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/interviews/${interviewId}/share`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) throw new ApiError(res.status, (await res.json()) as ApiErrorBody)
+}
+
+export interface SharedReport {
+  position: string | null
+  level: ExperienceLevel
+  language: 'tr' | 'en'
+  completedAt: string | null
+  report: Report
+  answeredPairs: AnsweredPair[]
+}
+
+// credentials GONDERILMEZ: bu uc kimlikle degil TOKEN ile yetkilendirir,
+// cerez gondermek yanlis bir izlenim verirdi.
+export async function getSharedReport(token: string) {
+  const res = await fetch(`${API_URL}/api/shared-reports/${encodeURIComponent(token)}`)
+  return parse<SharedReport>(res)
 }

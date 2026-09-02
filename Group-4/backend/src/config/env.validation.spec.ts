@@ -80,9 +80,9 @@ describe('validateEnv — guvenlik alanlari', () => {
     // S2: uretimde varsayilana dusmek sessiz bir arizadir — ters vekil
     // arkasinda IP kovasi tum kullanicilar icin tek kovaya doner.
     it('NODE_ENV=production iken TRUST_PROXY tanimsizsa REDDEDILIR', () => {
-      expect(() =>
-        validateEnv({ ...base, NODE_ENV: 'production' }),
-      ).toThrow(/TRUST_PROXY/);
+      expect(() => validateEnv({ ...base, NODE_ENV: 'production' })).toThrow(
+        /TRUST_PROXY/,
+      );
     });
 
     it('uretimde acikca 0 yazmak gecerlidir (vekil yok karari)', () => {

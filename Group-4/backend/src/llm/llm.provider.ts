@@ -27,6 +27,16 @@ export interface LlmCallArgs {
    * ictigi cikti hacmine gore olcekler.
    */
   maxTokens: number;
+  /**
+   * Ornekleme sicakligi. Verilmezse saglayici varsayilani (genellikle 1.0)
+   * kullanilir — bu, PUANLAMA yapan cagrilarda kararsizlik demektir: ayni
+   * mulakat iki kez raporlandiginda farkli skor cikar. Deger cagiran katmanda
+   * durur cunku dogru sicaklik cagriya gore degisir:
+   *   - soru uretimi: cesitlilik istenir (yuksek)
+   *   - uyarlama: dengeli (orta)
+   *   - rapor/degerlendirme: tekrarlanabilirlik sart (0'a yakin)
+   */
+  temperature?: number;
 }
 
 export interface LlmCallResult {

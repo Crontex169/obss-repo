@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, FileText, FileUp, Link2 } from 'lucide-react'
 import {
@@ -7,7 +7,9 @@ import {
   type ExperienceLevel,
   type InterviewMode,
 } from '@/lib/interview-client'
+import { getKvkkConsentStatus, type CvProfile } from '@/lib/users-client'
 import { PdfUpload } from '@/components/interview/pdf-upload'
+import { CvMatchPanel } from '@/components/interview/cv-match-panel'
 import { ModeSelector } from '@/components/interview/mode-selector'
 import { INPUT_CLASS, BUTTON_BASE } from '@/lib/ui-styles'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
@@ -47,6 +49,11 @@ export default function NewInterviewPage({
   // CV eklenmesi opsiyoneldir, ilan kaynagindan BAGIMSIZDIR (007-ui-design deseniyle
   // ayni PdfUpload bileseni tekrar kullanilir — yeni bir yukleme UI'i yazilmaz).
   const [cvFile, setCvFile] = useState<File | null>(null)
+  // Ayarlar'daki kalici CV profili: varsa bu gorusmede varsayilan olarak
+  // kullanilir; kullanici tek onay kutusuyla kapatabilir (ornegin CV'siyle
+  // ilgisiz bir alanda pratik yapiyorsa).
+  const [storedCv, setStoredCv] = useState<CvProfile | null>(null)
+  const [useStoredCv, setUseStoredCv] = useState(true)
   // String tutulur ki kullanici alani silip yeniden yazabilsin; gecersiz deger
   // odak cikisinda 5-20 araligina kirpilir.
   const [questionCount, setQuestionCount] = useState('8')
@@ -55,6 +62,27 @@ export default function NewInterviewPage({
   const [adaptiveEnabled, setAdaptiveEnabled] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
+
+  // Kayitli CV yalnizca ROZET icin okunur; metni istemciye hic gelmez.
+  // Basarisiz olursa sessizce gecilir — form CV olmadan da tam calisir.
+  useEffect(() => {
+    let cancelled = false
+    void getKvkkConsentStatus()
+      .then((status) => {
+        if (!cancelled) setStoredCv(status.cv)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Ilan girdisi eksik mi? handleSubmit'teki uc dogrulamayla AYNI kural —
+  // uyum analizi butonu da bu kapiyi kullanir.
+  const jobPostingMissing =
+    (source === 'text' && jobPostingText.trim().length === 0) ||
+    (source === 'pdf' && !file) ||
+    (source === 'url' && jobPostingUrl.trim().length === 0)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -88,6 +116,7 @@ export default function NewInterviewPage({
         mode,
         level,
         adaptiveEnabled,
+        useStoredCv,
       })
       // SPA navigasyonu: tam sayfa reload YOK (app-shell/session.tsx ile ayni desen).
       navigate(`/interview/${result.interview.id}`)
@@ -198,7 +227,37 @@ export default function NewInterviewPage({
             {t('new.cvLabel')}
           </span>
           <PdfUpload file={cvFile} onChange={setCvFile} />
+
+          {/* Kayitli CV rozeti. Bu istekte dosya secildiyse yuklenen dosya
+              kazanir (sunucu tarafi oncelik kurali) — onay kutusu o durumda
+              anlamsiz oldugu icin hic gosterilmez. */}
+          {storedCv?.fileName && !cvFile && (
+            <label className="mt-1 flex items-start gap-2 text-xs text-[var(--color-text-muted)]">
+              <input
+                type="checkbox"
+                checked={useStoredCv}
+                onChange={(e) => setUseStoredCv(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>{t('new.useStoredCv', { fileName: storedCv.fileName })}</span>
+            </label>
+          )}
         </div>
+
+        {/* Ilan x CV uyumu: gorusme baslatmadan once "nereye calismaliyim"
+            sorusunu cevaplar. Kayitli CV yoksa ve dosya da secilmediyse
+            sunucu ne yapilacagini soyleyen 400 doner. */}
+        <CvMatchPanel
+          disabled={jobPostingMissing}
+          buildRequest={() => ({
+            jobPostingSource: source,
+            jobPostingText: source === 'text' ? jobPostingText : undefined,
+            jobPostingFile: source === 'pdf' ? (file ?? undefined) : undefined,
+            jobPostingUrl: source === 'url' ? jobPostingUrl.trim() : undefined,
+            cvFile: cvFile ?? undefined,
+            useStoredCv,
+          })}
+        />
 
         {/* Ayarlar satiri: soru sayisi / gorusme modu / seviye tek yatay
             satirda (007-ui-design T4), dar ekranda alt alta sarar. */}

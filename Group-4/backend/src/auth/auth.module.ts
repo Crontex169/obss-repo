@@ -10,7 +10,7 @@ import { OwnershipGuard } from './ownership/ownership.guard';
 import { AdminController } from './admin/admin.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { BETTER_AUTH, createAuth } from './better-auth.config';
-// Bu dikeyin kayıt defteri — hangi controller/guard/service'in 
+// Bu dikeyin kayıt defteri — hangi controller/guard/service'in
 // bu modüle ait olduğunu ve  Better Auth  örneğinin nasıl oluşturulup ( BETTER_AUTH  token'ı ile) diğer modüllere  export  edildiğini tanımlar.
 @Module({
   controllers: [BetterAuthController, AdminController],

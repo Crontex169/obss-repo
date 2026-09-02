@@ -12,7 +12,6 @@
 // Tarayıcının  Accept-Language  başlığına bakıp içeriğin Türkçe mi İngilizce mi üretileceğine karar veren küçük yardımcı fonksiyon.
 //  Karar bir kez verilir ve kayda ( Interview.language ) yazılır — sonradan tarayıcı dili değişse bile eski kayıt aynı dilde kalır.
 
-
 export type AppLanguage = 'tr' | 'en';
 
 export function resolveLanguage(acceptLanguage?: string): AppLanguage {

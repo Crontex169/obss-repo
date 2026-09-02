@@ -21,6 +21,7 @@ import {
   resetAttempts,
   checkResetRequestRateLimit,
   recordResetRequest,
+  signInAttemptOutcome,
 } from './rate-limit.config';
 import {
   rejectAdminGoogleIdTokenSignIn,
@@ -32,16 +33,13 @@ import { enforceResetPasswordPolicy } from './hooks/reset-password.hook';
 import { redactEmail } from '../common/log-redaction';
 
 /**
- * 
- * 
- * Auth tarafının en kalın dosyası — 
- * Better Auth kütüphanesinin tüm ayarlarını tek yerde toplar: parola kuralları, e-posta doğrulama süresi, çerez güvenliği ( sameSite / secure ), 
+ *
+ *
+ * Auth tarafının en kalın dosyası —
+ * Better Auth kütüphanesinin tüm ayarlarını tek yerde toplar: parola kuralları, e-posta doğrulama süresi, çerez güvenliği ( sameSite / secure ),
  * Google OAuth, admin+Google girişinin engellenmesi, oturum süresi (30 gün) ve giriş/kayıt/parola sıfırlama akışlarına takılan güvenlik kancaları ( hooks.before / after ).
  *  Rol bilgisinin istemciden asla gönderilemeyeceği garantisi ( input: false ) de burada verilir.
-*/
-
-
-
+ */
 
 // better-auth `ctx.body`'yi `any` olarak tipler. E-posta okumayi TEK bir
 // dogrulanmis yardimciya topluyoruz: hem lint'in unsafe-member-access uyarisi
@@ -383,11 +381,15 @@ export function createAuth(prisma: PrismaClient) {
                 ? response.status
                 : 200;
 
-          if (status >= 400) {
-            recordFailedAttempt(email);
-          } else {
-            resetAttempts(email);
-          }
+          // Onceden kosul `status >= 400` idi ve bu, sifresi DOGRU olan
+          // kullaniciyi cezalandiriyordu: e-postasi henuz dogrulanmamis bir
+          // hesap her denemede 403 EMAIL_NOT_VERIFIED alir
+          // (requireEmailVerification), her deneme "basarisiz" sayilirdi ve
+          // 10. denemede kullanici kendi hesabini kilitlerdi.
+          // Kural ve gerekcesi: rate-limit.config.ts signInAttemptOutcome.
+          const outcome = signInAttemptOutcome(status);
+          if (outcome === 'fail') recordFailedAttempt(email);
+          else if (outcome === 'reset') resetAttempts(email);
         }
       }),
     },

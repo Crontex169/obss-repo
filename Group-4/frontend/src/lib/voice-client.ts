@@ -1,9 +1,10 @@
-// Sozlu mod — ADR-0010: tarayici Web Speech API.
-// Sunucuda ses isleme YOK, saglayici anahtari YOK, yeni bagimlilik YOK.
-// Istemci konusmayi metne cevirir; sunucu cevabi yazili modla AYNI sekilde alir (FR-008).
+// Sozlu mod - ADR-0014: STT Groq Whisper (backend), TTS tarayici Web Speech
+// API (ADR-0010'dan degismedi). Bu dosya iki motoru da acar: kayit
+// (MediaRecorder + AnalyserNode ile ses seviyesi analizi) burada, sesli
+// okuma speech/ altindan devredilir.
 //
-// Bedeli: tarayici bagimliligi (Chrome/Edge). Desteklenmeyen tarayicida sozlu mod
-// UI'da DEVRE DISI gosterilir — sessiz basarisizlik yasak (FR-025).
+// Desteklenmeyen tarayicida sozlu mod UI'da DEVRE DISI gosterilir - sessiz
+// basarisizlik yasak (FR-025).
 
 import {
   speakText,
@@ -16,37 +17,53 @@ import {
 export type { SpeakOptions, SpeechHandle };
 export { hasVoiceFor, loadVoices };
 
-type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+const CANDIDATE_MIME_TYPES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/ogg;codecs=opus',
+  'audio/ogg',
+];
 
-interface SpeechRecognitionLike {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  onspeechstart?: (() => void) | null;
+/** Tarayicinin destekledigi ILK aday format - hicbiri yoksa undefined (MediaRecorder varsayilanina duser). */
+export function pickSupportedMimeType(): string | undefined {
+  if (
+    typeof MediaRecorder === 'undefined' ||
+    typeof MediaRecorder.isTypeSupported !== 'function'
+  ) {
+    return undefined;
+  }
+  return CANDIDATE_MIME_TYPES.find((type) =>
+    MediaRecorder.isTypeSupported(type),
+  );
 }
 
-interface SpeechRecognitionEventLike {
-  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
-  resultIndex: number;
+/**
+ * Zaman-domeni orneklerinden kaba genlik (RMS). 128 = sessizlik (orta nokta,
+ * unsigned byte). Donus degeri 0 (sessiz) ile ~1 (uc deger genlik) arasi.
+ */
+export function computeRms(samples: Uint8Array): number {
+  let sumSquares = 0;
+  for (const value of samples) {
+    const normalized = (value - 128) / 128;
+    sumSquares += normalized * normalized;
+  }
+  return Math.sqrt(sumSquares / samples.length);
 }
 
-function recognitionCtor(): SpeechRecognitionCtor | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const w = window as unknown as {
-    SpeechRecognition?: SpeechRecognitionCtor;
-    webkitSpeechRecognition?: SpeechRecognitionCtor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+export function recordingSupported(): boolean {
+  return (
+    typeof navigator !== 'undefined' &&
+    typeof navigator.mediaDevices?.getUserMedia === 'function' &&
+    typeof window !== 'undefined' &&
+    typeof window.MediaRecorder !== 'undefined' &&
+    typeof window.AudioContext !== 'undefined'
+  );
 }
 
 export interface VoiceSupport {
-  /** Konusma -> metin (soru cevaplama). Sozlu mod icin ZORUNLU. */
+  /** Konusma -> metin (Whisper'a kayit gonderme). Sozlu mod icin ZORUNLU.
+   *  Alan adi ADR-0010'dan KORUNDU (voice-controls.tsx okuyor); anlami
+   *  degisti: artik SpeechRecognition degil KAYIT destegi. */
   recognition: boolean;
   /** Metin -> konusma (sorunun sesli okunmasi). Yoksa mod yine calisir. */
   synthesis: boolean;
@@ -54,9 +71,8 @@ export interface VoiceSupport {
 
 export function voiceSupport(): VoiceSupport {
   return {
-    recognition: recognitionCtor() !== undefined,
-    synthesis:
-      typeof window !== 'undefined' && 'speechSynthesis' in window,
+    recognition: recordingSupported(),
+    synthesis: typeof window !== 'undefined' && 'speechSynthesis' in window,
   };
 }
 
@@ -72,129 +88,126 @@ export class VoiceUnsupportedError extends Error {
   }
 }
 
-export interface DictationHandlers {
-  /** Kesinlesmis metin parcasi — cevap alanina eklenir. */
-  onFinal(text: string): void;
-  /** Henuz kesinlesmemis metin — canli onizleme (opsiyonel). */
-  onInterim?(text: string): void;
-  /** Mikrofonda GERCEK konusma duyuldu. Sessizlik sayaci ancak bundan sonra anlamli. */
-  onSpeechStart?(): void;
-  onError?(error: string): void;
-  /** Oturum KALICI olarak bitti (stop() cagrildi veya kurtarilamaz hata). */
-  onEnd?(): void;
+export class MicrophoneDeniedError extends Error {
+  constructor() {
+    super('Mikrofon izni reddedildi.');
+    this.name = 'MicrophoneDeniedError';
+  }
 }
 
-export interface Dictation {
+export interface RecordingHandlers {
+  /** GERCEK ses seviyesi algilandi (esik ustunde) - sessizlik sayaci ancak
+   *  BUNDAN SONRA anlamli (eski startDictation.onSpeechStart ile ayni amac). */
+  onSpeechStart?(): void;
+  /** Kayit surerken ANLIK ses seviyesi (0-1 kaba genlik) - kayit gostergesi icin. */
+  onLevel?(level: number): void;
+  /** Sessizlik esigi asildi VEYA stop() cagrildi: kayit bitti, blob HAZIR. */
+  onStop(blob: Blob, mimeType: string): void;
+  onError?(error: string): void;
+}
+
+export interface Recording {
+  /** Elle durdurma (kullanici "Kaydi Durdur" butonuna bastiginda). */
   stop(): void;
 }
 
-// Tarayici oturumu kendiliginden bitirdiginde yeniden baslatma araligi.
-// 0 olmaz: Chrome onend icinde start() cagrisini "already started" diye
-// reddedebiliyor; bir tick beklemek bunu gecirir.
-export const DICTATION_RESTART_DELAY_MS = 250;
+// Kaba genlik esigi - bunun USTU "konusma", ALTI "sessizlik" sayilir.
+const SPEECH_LEVEL_THRESHOLD = 0.02;
+// Ses seviyesi ne siklikta olculur (ms). requestAnimationFrame yerine sabit
+// interval: testlerde sahte zamanlayicilarla (vi.useFakeTimers) deterministik.
+const LEVEL_POLL_MS = 100;
 
-// Sonsuz yeniden baslatma dongusune karsi sigorta. Gercek konusma duyulunca
-// sayac sifirlanir, yani sinir "hic ses gelmeden ust uste kac deneme"dir.
-export const DICTATION_RESTART_LIMIT = 40;
+/**
+ * Mikrofon kaydini baslatir; `silenceTimeoutMs` kadar sessizlik sonrasi kayit
+ * KENDILIGINDEN durur ve onStop tetiklenir. Whisper TOPLU calisir (ADR-0014):
+ * canli/akan metin YOKTUR, yalnizca ses seviyesi (onLevel) anlik gorunur.
+ */
+export async function startRecording(
+  silenceTimeoutMs: number,
+  handlers: RecordingHandlers,
+): Promise<Recording> {
+  if (!recordingSupported()) throw new VoiceUnsupportedError();
 
-// Bunlar oturumun bittigini soyler, sozlu modun bozuldugunu DEGIL:
-//   no-speech — Chrome birkac saniye sessizlikten sonra oturumu kapatir.
-//   aborted   — baska bir tanima baslatildiginda / sekme degistiginde.
-// Ikisinde de aday hala cevap vermeye hazirdir; dinleme SURMELIDIR.
-const RECOVERABLE_ERRORS = new Set(['no-speech', 'aborted']);
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    throw new MicrophoneDeniedError();
+  }
 
-// Dikkat: dil, gorusmenin kayitli dilinden gelir (Interview.language) — tarayici
-// diline birakilmaz, aksi halde TR gorusmede EN tanima yapilir.
-//
-// continuous=true YETMEZ: Chrome birkac saniye sessizlikte oturumu no-speech
-// ile kapatir. Aday soruyu dinleyip dusunurken bu neredeyse HER ZAMAN olur —
-// sonra konusmaya baslar ama dinleyen kimse yoktur ("mikrofon acik gorunuyor,
-// hicbir sey algilanmiyor"). Bu yuzden oturum, cagiran stop() DEMEDIKCE
-// yeniden baslatilir; onEnd yalnizca gercekten bittiginde tetiklenir.
-export function startDictation(
-  language: 'tr' | 'en',
-  handlers: DictationHandlers,
-): Dictation {
-  const Ctor = recognitionCtor();
-  if (!Ctor) throw new VoiceUnsupportedError();
-
-  const recognition = new Ctor();
-  recognition.lang = language === 'tr' ? 'tr-TR' : 'en-US';
-  recognition.continuous = true;
-  recognition.interimResults = true;
-
+  const mimeType = pickSupportedMimeType();
+  const recorder = new MediaRecorder(
+    stream,
+    mimeType ? { mimeType } : undefined,
+  );
+  const chunks: BlobPart[] = [];
   let stopped = false;
-  let endEmitted = false;
-  let restarts = 0;
-  let restartTimer: number | undefined;
+  let silenceTimer: number | undefined;
+  let hasSpoken = false;
 
-  // Tarayici onerror'dan SONRA onend de tetikler; onEnd'in tam olarak bir kez
-  // gitmesi cagirandaki faz makinesi icin sart.
-  const emitEnd = () => {
-    if (endEmitted) return;
-    endEmitted = true;
-    handlers.onEnd?.();
-  };
+  const audioCtx = new AudioContext();
+  const source = audioCtx.createMediaStreamSource(stream);
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  source.connect(analyser);
+  const samples = new Uint8Array(analyser.frequencyBinCount);
 
-  recognition.onresult = (event) => {
-    // Ses geliyor: yeniden baslatma sigortasi bastan sayilsin.
-    restarts = 0;
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      const result = event.results[i];
-      const transcript = result[0]?.transcript ?? '';
-      if (result.isFinal) handlers.onFinal(transcript);
-      else handlers.onInterim?.(transcript);
+  const clearSilenceTimer = () => {
+    if (silenceTimer !== undefined) {
+      window.clearTimeout(silenceTimer);
+      silenceTimer = undefined;
     }
   };
 
-  recognition.onspeechstart = () => {
-    restarts = 0;
-    handlers.onSpeechStart?.();
+  const armSilenceTimer = () => {
+    clearSilenceTimer();
+    silenceTimer = window.setTimeout(finish, silenceTimeoutMs);
   };
 
-  recognition.onerror = (event) => {
-    // Kurtarilabilir hata rapor EDILMEZ: cagiran bunu "cevap bitti" sanip
-    // akisi keserdi. onend yeniden baslatmayi zaten yapacak.
-    if (RECOVERABLE_ERRORS.has(event.error)) return;
+  const teardown = () => {
+    window.clearInterval(levelInterval);
+    clearSilenceTimer();
+    stream.getTracks().forEach((track) => track.stop());
+    void audioCtx.close();
+  };
+
+  function finish() {
+    if (stopped) return;
     stopped = true;
-    handlers.onError?.(event.error);
-    emitEnd();
-  };
+    teardown();
+    recorder.stop();
+  }
 
-  recognition.onend = () => {
-    if (stopped) {
-      emitEnd();
-      return;
-    }
-    restarts += 1;
-    if (restarts > DICTATION_RESTART_LIMIT) {
-      stopped = true;
-      emitEnd();
-      return;
-    }
-    restartTimer = window.setTimeout(() => {
-      if (stopped) return;
-      try {
-        recognition.start();
-      } catch {
-        // Zaten calisiyor olabilir — dinleme surdugu icin sorun degil.
+  const levelInterval = window.setInterval(() => {
+    analyser.getByteTimeDomainData(samples);
+    const level = computeRms(samples);
+    handlers.onLevel?.(level);
+    if (level > SPEECH_LEVEL_THRESHOLD) {
+      if (!hasSpoken) {
+        hasSpoken = true;
+        handlers.onSpeechStart?.();
       }
-    }, DICTATION_RESTART_DELAY_MS);
+      armSilenceTimer();
+    }
+  }, LEVEL_POLL_MS);
+
+  recorder.ondataavailable = (event) => {
+    if (event.data.size > 0) chunks.push(event.data);
+  };
+  recorder.onstop = () => {
+    const finalType = recorder.mimeType || mimeType || 'audio/webm';
+    handlers.onStop(new Blob(chunks, { type: finalType }), finalType);
+  };
+  recorder.onerror = () => {
+    if (stopped) return;
+    stopped = true;
+    teardown();
+    handlers.onError?.('recording-failed');
   };
 
-  recognition.start();
+  recorder.start();
 
-  return {
-    stop: () => {
-      if (stopped) return;
-      stopped = true;
-      if (restartTimer !== undefined) window.clearTimeout(restartTimer);
-      // Oturum yeniden baslatma beklerken duruyorsa onend hic gelmez —
-      // bitis sinyali burada verilir (emitEnd tekrar korumali).
-      recognition.stop();
-      emitEnd();
-    },
-  };
+  return { stop: finish };
 }
 
 // Okuma kalitesi speech/ altinda: metin once telaffuz normalizasyonundan ve

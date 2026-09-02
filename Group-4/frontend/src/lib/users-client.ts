@@ -28,10 +28,18 @@ export interface KvkkConsentStatus {
   kvkkConsentAt: string | null
 }
 
+export interface CvProfile {
+  fileName: string | null
+  updatedAt: string | null
+}
+
 export interface AccountStatus extends KvkkConsentStatus {
   // Hesabin parolasi var mi (Google ile giren kullanicida yoktur). Hesap silme
   // onayinin bicimini belirler: parola girisi mi, yalnizca onay kutusu mu.
   hasPassword: boolean
+  // Kayitli CV profili — yoksa null. CV METNI istemciye HIC gelmez, yalnizca
+  // "var mi + hangi dosyadan + ne zaman" (sunucu tarafi veri asgarisi).
+  cv: CvProfile | null
 }
 
 // §GET — KVKK onay durumu (dashboard mount'unda tek seferlik popup icin) ve
@@ -62,6 +70,30 @@ export async function deleteAccount(payload: {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    throw new ApiError(res.status, (await res.json()) as ApiErrorBody)
+  }
+}
+
+// §POST /api/users/me/cv — kalici CV profili (tek PDF). Ayni uc hem ilk
+// yuklemeyi hem degistirmeyi yapar: kayit uzerine yazilir.
+export async function uploadCv(file: File): Promise<CvProfile> {
+  const form = new FormData()
+  form.set('cvFile', file)
+  const res = await fetch(`${API_URL}/api/users/me/cv`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  })
+  return parse<CvProfile>(res)
+}
+
+// §DELETE /api/users/me/cv — 204, govde yok. Idempotent.
+export async function deleteCv(): Promise<void> {
+  const res = await fetch(`${API_URL}/api/users/me/cv`, {
+    method: 'DELETE',
+    credentials: 'include',
   })
   if (!res.ok) {
     throw new ApiError(res.status, (await res.json()) as ApiErrorBody)

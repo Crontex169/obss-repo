@@ -2,7 +2,11 @@
 // LLM'den yetkinlik raporunu ister, sonucu veritabanına yazar. Interview
 // modülünden farklı olarak bu değerlendirme bağımsızdır, görüşme sürecini
 // hiç etkilemez.
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   Prisma,
   type ExperienceLevel,
@@ -23,6 +27,7 @@ import {
   type CompetencyReportResult,
 } from './llm/competency-report.schema';
 import {
+  COMPETENCY_REPORT_TEMPERATURE,
   buildCompetencyReportSystemPrompt,
   buildCompetencyReportUserData,
 } from './llm/competency-report.prompt';
@@ -86,6 +91,7 @@ export class PreAssessmentService {
         operation: 'pre_assessment',
         userId,
         preAssessmentId: created.id,
+        temperature: COMPETENCY_REPORT_TEMPERATURE,
       });
     } catch (error) {
       // Basarisizlik akisi (FR-008/FR-009): rapor YAZILMAZ, mevcut aktif kayit

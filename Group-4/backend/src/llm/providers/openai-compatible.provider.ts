@@ -48,6 +48,12 @@ export function buildChatRequest(
     // Cagiran katman tavani GORUNUR cikti icin hesaplar; akil yurutme modelinde
     // `reasoning_content` de ayni butceden yenir (bkz. reasoningTokenBudget).
     max_tokens: args.maxTokens + config.reasoningTokenBudget,
+    // Verilmediyse alan hic gonderilmez — saglayici varsayilani korunur
+    // (mevcut davranis). `temperature: undefined` YAZILAMAZ: exactOptionalPropertyTypes
+    // ve bazi saglayicilarin null'a takilmasi yuzunden alanin YOK olmasi gerekir.
+    ...(args.temperature !== undefined
+      ? { temperature: args.temperature }
+      : {}),
     response_format:
       config.schemaDelivery === 'json_schema_strict'
         ? {

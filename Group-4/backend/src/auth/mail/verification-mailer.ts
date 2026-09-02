@@ -6,8 +6,6 @@
 // hesabi gerektirmez); production'da MAIL_TRANSPORT=resend + RESEND_API_KEY.
 import { Resend } from 'resend';
 
-
-
 // Anayasa Ilke VI (sessiz basarisizlik yasak) / bulgu A6: Resend SDK API
 // hatalarinda throw ETMEZ, { error } alaniyla doner — kontrol edilmezse mail
 // sessizce gitmez ve kimse haberdar olmaz. Burada logla ve hatayi yukari firlat.

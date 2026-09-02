@@ -18,6 +18,7 @@ describe('ConsentGateDialog', () => {
     vi.mocked(getKvkkConsentStatus).mockResolvedValue({
       kvkkConsentAt: null,
       hasPassword: true,
+      cv: null,
     })
   })
 
@@ -132,6 +133,7 @@ describe('ConsentGateDialog', () => {
     vi.mocked(getKvkkConsentStatus).mockResolvedValue({
       kvkkConsentAt: '2026-01-01T00:00:00.000Z',
       hasPassword: true,
+      cv: null,
     })
     render(<ConsentGateDialog />)
 

@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { verifyPassword } from 'better-auth/crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PdfExtractionService } from '../pdf/pdf-extraction.service';
+import { sanitizeFreeText } from '../interview/llm/prompt-shared';
 import {
   checkAccountDeleteRateLimit,
   recordFailedAccountDeleteAttempt,
@@ -22,12 +24,15 @@ import type { DeleteAccountInput } from './dto/delete-account.dto';
 // tek seferlik olarak işaretlenir (kvkkConsentAt null ise hiç onaylanmamış demektir).
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pdf: PdfExtractionService,
+  ) {}
 
   async getKvkkConsent(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { kvkkConsentAt: true },
+      select: { kvkkConsentAt: true, cvFileName: true, cvUpdatedAt: true },
     });
     // hasPassword: hesap silme onayinin hangi bicimde alinacagini belirler
     // (parola girisi mi, yalnizca onay kutusu mu). Yalnizca-Google hesapta
@@ -40,7 +45,52 @@ export class UsersService {
     return {
       kvkkConsentAt: user.kvkkConsentAt,
       hasPassword: credential !== null,
+      // CV METNI BURADA DONMEZ, yalnizca "var mi + hangi dosyadan + ne zaman".
+      // Metin yalnizca sunucuda, soru uretimi promptunda kullanilir; istemciye
+      // geri gondermek icin bir sebep yok (veri asgarisi, Ilke V).
+      cv:
+        user.cvFileName !== null
+          ? { fileName: user.cvFileName, updatedAt: user.cvUpdatedAt }
+          : null,
     };
+  }
+
+  // Kalici CV profili — PDF BIR kez yuklenir, metni cikarilir ve saklanir.
+  // Sonraki her gorusme dosya istemeden bu metni baglam olarak kullanabilir
+  // (interview.service.ts create()). PDF'in kendisi saklanmaz.
+  async saveCv(userId: string, file: Express.Multer.File) {
+    const text = sanitizeFreeText(
+      await this.pdf.extractText(file.buffer, file.mimetype),
+    );
+    // Cikarim bos donerse (taranmis/gorsel PDF) kaydetme: kullanici "CV'm
+    // kayitli" sanip bos baglamla gorusme baslatmasin.
+    if (text.trim().length === 0) {
+      throw new BadRequestException(
+        'PDF icinden metin cikarilamadi. Metin tabanli bir CV yukleyin.',
+      );
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        cvText: text,
+        // Dosya adi kullanici kokenlidir -> serbest metin gibi temizlenir ve
+        // uzunlugu sinirlanir (Ilke V).
+        cvFileName: sanitizeFreeText(file.originalname).slice(0, 200),
+        cvUpdatedAt: new Date(),
+      },
+      select: { cvFileName: true, cvUpdatedAt: true },
+    });
+    return { fileName: user.cvFileName, updatedAt: user.cvUpdatedAt };
+  }
+
+  // Idempotent: CV zaten yoksa da 204 doner (silme "yok etme" degil "yok
+  // oldugundan emin olma" islemidir).
+  async deleteCv(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { cvText: null, cvFileName: null, cvUpdatedAt: null },
+    });
   }
 
   async setKvkkConsent(userId: string) {

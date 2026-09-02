@@ -15,6 +15,17 @@
     "light": "Açık",
     "dark": "Koyu"
   },
+  "cv": {
+    "heading": "CV profili",
+    "description": "CV'nizi bir kez yükleyin; yeni mülakatlarda sorular otomatik olarak CV'nize göre kişiselleştirilir. Dosya saklanmaz, yalnızca içinden çıkarılan metin tutulur.",
+    "remove": "Kaldır",
+    "uploaded": "CV kaydedildi.",
+    "uploadFailed": "CV yüklenemedi. Lütfen tekrar deneyin.",
+    "removed": "CV kaldırıldı.",
+    "removeFailed": "CV kaldırılamadı. Lütfen tekrar deneyin.",
+    "busy": "İşleniyor…",
+    "updatedAt": "Güncellendi: {{date}}"
+  },
   "deleteAccount": {
     "heading": "Hesabı sil",
     "description": "Hesabınız; mülakatlarınız, ön değerlendirmeleriniz ve raporlarınızla birlikte kalıcı olarak silinir. Bu işlem geri alınamaz.",

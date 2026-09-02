@@ -31,6 +31,7 @@
 | ADR-0011 | Grafik kütüphanesi: Recharts (shadcn/ui Charts üzerinden) | ✅ Kabul | `002-interview` + `005-admin` |
 | ADR-0012 | Oturum çerezi duruşu + CSRF savunması: açık yapılandırma + `OriginGuard` | ✅ Kabul | `docs/SECURITY.md` S5 (#64) |
 | ADR-0013 | Adaptif uyarlamaya ön değerlendirme bağlamının genişletilmesi | ✅ Kabul | `002-interview` (FR-010/FR-030) |
+| ADR-0014 | Sözlü mod STT: Groq Whisper (tarayıcı yerine, TTS aynen kalır) | ✅ Kabul | `docs/superpowers/specs/2026-08-24-stt-whisper-design.md` |
 
 ---
 
@@ -712,7 +713,7 @@ sunuyor — iki adayın iyi taraflarını birleştiriyor.
 ## ADR-0010 — Sözlü Mod Altyapısı: Tarayıcı Web Speech API
 
 - **Tarih:** 2026-07-30
-- **Durum:** ✅ Kabul edildi
+- **Durum:** ⛔ Kısmen değiştirildi (STT → ADR-0014, TTS aynen kalır)
 - **Sahibi:** `002-interview`
 
 ### Bağlam
@@ -1103,3 +1104,68 @@ tekrarını da ortadan kaldırdı.
 - `backend/src/config/env.validation.ts`, `.env.example` — `COOKIE_SAMESITE`
 - `backend/test/integration/security.spec.ts` — S5 regresyon testleri
 - Deployment topolojisi seçildiğinde değişecek **tek** şey `COOKIE_SAMESITE` değeridir.
+
+
+---
+
+## ADR-0014 — Sözlü Mod STT: Groq Whisper
+
+- **Tarih:** 2026-08-24
+- **Durum:** ✅ Kabul edildi
+- **Sahibi:** brainstorming diyaloğu (bkz. `docs/superpowers/specs/2026-08-24-stt-whisper-design.md`)
+
+### Bağlam
+
+ADR-0010, sözlü modun STT ve TTS ikisini de tarayıcı Web Speech API ile
+çözdüğüne karar vermişti; kayıtlı risk R2 "Türkçe transkript hataları"ydı,
+mitigasyonu "kullanıcı gönderim öncesi metni görüp düzeltebilir"di. Bu ADR o
+riski mitigasyonla değil kaynağında çözüyor: **yalnızca STT** tarafı
+tarayıcıdan alınıp Groq Whisper'a taşınıyor. **TTS aynen kalıyor.**
+
+### Karar
+
+**Sözlü modun STT kısmı Groq Whisper (`whisper-large-v3-turbo`) ile
+uygulanır.** İstemci `MediaRecorder`+`getUserMedia` ile ses kaydeder, ses
+seviyesi analiziyle (`AnalyserNode`) otomatik durur, kayıt backend'e
+yüklenir (`POST /api/interviews/:id/transcribe`), backend Groq'a iletir ve
+dönen metni geri verir. Whisper TOPLU çalışır — canlı/akan transkript YOK,
+kullanıcı yalnızca kayıt sırasında ses seviyesi göstergesi görür, metin
+kayıt bitince gelir. TTS (`SpeechSynthesis`) DEĞİŞMEDİ.
+
+### Değerlendirilen Alternatifler
+
+| Eksen | A) Groq Whisper (SEÇİLEN) | B) Tarayıcı STT (mevcut, ADR-0010) | C) Whisper başarısızsa tarayıcıya otomatik düş |
+|-------|---------------------------|--------------------------------------|--------------------------------------------------|
+| **Türkçe kalitesi** | Yüksek (motivasyon) | Tarayıcıya göre değişken | Yüksek (çoğu durumda) |
+| **Maliyet** | Groq ücretsiz katman (ADR-0007 ile aynı desen) | Sıfır | Sıfır + ücretsiz katman |
+| **Karmaşıklık** | Orta — yeni backend ucu + kota, `MediaRecorder` tabanlı kayıt | Yok | Yüksek — iki motor da kodda tutulur |
+| **Tarayıcı bağımlılığı** | Düşük (`MediaRecorder`/`getUserMedia` Firefox/Safari'de de var) | Yüksek (`SpeechRecognition` yok) | Düşük |
+| **Kota riski** | Var (Groq ücretsiz katman); ayrı `stt` kovası ilk savunma katmanı | Yok | Var, iki kat karmaşıklıkla |
+
+### Gerekçe (Belirleyici Eksen: Türkçe Kalitesi)
+
+ADR-0010'un R2 riski gerçek: transkript hatası doğrudan LLM girdisine gider
+ve rapor kalitesini bozar. Kullanıcı düzeltebilse de bu bir MİTİGASYONDUR,
+kaynağı çözmez. Groq zaten ADR-0007'nin LLM sağlayıcısı — aynı ekosistemde
+ikinci bir entegrasyon (ayrı hesap/fatura yok), ücretsiz katmanı var.
+
+C) (otomatik motor değişimi) reddedildi: iki motoru aynı anda kodda tutmak
+karmaşıklığı ikiye katlıyor, kazancı marjinal.
+
+### Riskler ve Azaltma
+
+| # | Risk | Azaltma |
+|---|------|---------|
+| R1 | Groq Whisper ücretsiz katman kota tavanı (ADR-0007 TPM riskiyle aynı desen) | Kullanıcı başına `stt` kovası (30/saat) ilk savunma katmanı; sağlayıcı 429 dönerse kullanıcı yazılıya düşer |
+| R2 | Mikrofon izni / `MediaRecorder` desteği yok | `voiceSupport()` kontrolü — desteklenmiyorsa sözlü mod UI'da devre dışı (FR-025, sessiz başarısızlık yok) |
+| R3 | `GROQ_API_KEY` yapılandırılmamış | Sağlayıcı hatasıyla AYNI yoldan geçer (bilinçli, ayrı bir durum eklenmedi) |
+
+### Sonuçlar / Etkiler
+
+- `docs/TECH_STACK.md` → "Voice / Speech" satırı güncellendi.
+- Yeni env: `GROQ_API_KEY` (opsiyonel).
+- Sesli akış için artık bir maliyet/kota YÜZEYİ var (LLM'den bağımsız);
+  kalıcı maliyet KAYDI yok (bilinçli, spec kapsamı dışı — istenirse ayrı iş).
+- Sunucu tarafı `POST /api/interviews/:id/answers` sözleşmesi DEĞİŞMEDİ —
+  transkript istemcide `content` alanına yazılıp normal cevap gibi gönderilir.
+

@@ -55,6 +55,9 @@ import { validateEnv } from './config/env.validation';
           // Yer tutucu: her LLM uc noktasi @Throttle(llmQuota(N)) ile KENDI
           // limitini verir (3/60/5 per saat — docs/API_CONVENTIONS.md 3.5).
           { name: 'llm', ttl: seconds(3600), limit: 1000 },
+          // Yer tutucu: sozlu mod STT ucu @Throttle(sttQuota(30)) ile kendi
+          // limitini verir (ADR-0014). LLM kovasindan bagimsiz.
+          { name: 'stt', ttl: seconds(3600), limit: 1000 },
         ],
         storage: createThrottlerStorage(config.get<string>('REDIS_URL')),
       }),

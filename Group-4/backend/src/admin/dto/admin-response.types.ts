@@ -14,7 +14,6 @@
  * Bu dosya hiçbir kontrol yapmıyor, sadece TypeScript  interface 'leri tanımlıyor. Yani "admin ekranına giden bir görüşme listesi şöyle görünür" diye bir sözleşme.
  */
 
-
 export type AdminInterviewStatus = 'in_progress' | 'completed';
 export type AdminReportStatus =
   'not_applicable' | 'pending' | 'ready' | 'failed';

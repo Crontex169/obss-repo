@@ -15,6 +15,9 @@ describe('#68 soru bazli geri bildirim', () => {
             questionText: 'Iskele kurulumunda ilk kontrol nedir?',
             options: ['Baglanti elemanlari', 'Malzeme sayimi'],
             answerContent: 'Malzeme sayimi',
+            topic: null,
+            layer: null,
+            evaluationSummary: null,
           },
         ],
       });
@@ -33,6 +36,9 @@ describe('#68 soru bazli geri bildirim', () => {
             questionText: 'Ekip ici catismayi nasil yonetirsin?',
             options: [],
             answerContent: 'Once dinlerim.',
+            topic: null,
+            layer: null,
+            evaluationSummary: null,
           },
         ],
       });
@@ -45,7 +51,15 @@ describe('#68 soru bazli geri bildirim', () => {
       const data = buildTranscript({
         position: null,
         pairs: [
-          { order: 3, questionText: 'S', options: [], answerContent: '   ' },
+          {
+            order: 3,
+            questionText: 'S',
+            options: [],
+            answerContent: '   ',
+            topic: null,
+            layer: null,
+            evaluationSummary: null,
+          },
         ],
       });
 
@@ -66,6 +80,11 @@ describe('#68 soru bazli geri bildirim', () => {
       overallImpression: 'Genel izlenim.',
       strengths: ['Net iletisim'],
       improvementAreas: ['Detay'],
+      calibration: {
+        technical: { band: 'yeterli', evidenceOrders: [1] },
+        behavioral: { band: 'guclu', evidenceOrders: [1] },
+        general: { band: 'yeterli', evidenceOrders: [1] },
+      },
       scores: { technical: 60, behavioral: 70, general: 65 },
       additionalNotes: null,
     };

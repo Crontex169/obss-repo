@@ -13,7 +13,6 @@ import type { AuthUser } from '../decorators/current-user.decorator';
 //"Bu isteği yapan giriş yapmış mı" sorusunun cevaplandığı ilk bekçi. Better Auth'tan oturumu doğrular,
 //  kullanıcıyı veritabanından taze okuyup  request.user 'a yazar; oturum yoksa 401 döner.
 
-
 // R5 / contracts/authz-rules.md: Better Auth oturumunu dogrular, request.user'i
 // DB destekli oturumdan doldurur (istemciden gelen role guvenilmez). Oturum
 // yok/gecersiz -> 401 (FR-013, SC-006).

@@ -23,6 +23,13 @@ model User {
   // KVKK onay popup'i ilk girişte gösterilir, kabul edildiğinde işaretlenir;
   // null ise kullanıcı henüz onaylamamış demektir (tek seferlik gösterim).
   kvkkConsentAt DateTime?
+  // Kalici CV profili: kullanici CV'sini BIR kez yukler, her gorusmede tekrar
+  // yuklemez. Saklanan sey PDF degil CIKARILMIS METINDIR — dosyanin kendisi
+  // hicbir yerde tutulmaz (veri asgarisi). Ayarlar ekranindan silinebilir;
+  // hesap silinince zaten satirla birlikte gider.
+  cvText        String?
+  cvFileName    String?
+  cvUpdatedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -134,6 +141,7 @@ enum LlmOperation {
   question_generation // 002-interview
   adaptive_evaluation // 002-interview
   interview_report // 002-interview
+  cv_job_match // 002-interview: ilan x CV uyum analizi
 }
 
 enum ReportLanguage {
@@ -249,6 +257,12 @@ model Interview {
   language             ReportLanguage
   // status="completed" ile ayni transaction'da yazilir; sure = completedAt - createdAt
   completedAt          DateTime?
+  // Rapor paylasim linki: kullanici raporunu (mentor/arkadas icin) oturum
+  // gerektirmeyen bir adresle paylasabilir. Token TAHMIN EDILEMEZ olmali —
+  // uretimi crypto.randomBytes'tadir (interview.service.ts). Sure dolunca ya
+  // da kullanici iptal edince iki alan da null'a doner.
+  shareToken           String?          @unique
+  shareExpiresAt       DateTime?
   // Soft-delete temeli; silme UC NOKTASI 004-history kapsaminda
   deletedAt            DateTime?
   createdAt            DateTime         @default(now())
@@ -291,6 +305,14 @@ model Question {
   // zorunlu degil (uretemezse null, soru yine gecerli).
   tip                 String?
   rationale           String?
+  // Katmanli soru plani (question-blueprint.ts). Uyarlama (adaptive) bu uc alani
+  // DEGISTIRMEZ: uyarlanan soru ayni konunun ayni katmaninda kalir, yalnizca
+  // metni adayin cevabina baglanir.
+  // Nullable: plan ozelligi oncesi uretilmis sorularda yoktur ve geriye donuk
+  // turetilemez — sahte bir varsayilan yazmak raporu yaniltirdi.
+  topic               String?
+  layer               Int?
+  style               String?
   adaptedFromAnswerId String?
   isBaseline          Boolean      @default(true)
   createdAt           DateTime     @default(now())
@@ -308,6 +330,11 @@ model Answer {
   content    String
   sourceMode InterviewMode
   answeredAt DateTime      @default(now())
+  // Adaptif uyarlamanin bu cevap icin urettigi DAHILI degerlendirme
+  // (adaptive.ts evaluationSummary). Adaya ASLA gosterilmez; sonraki
+  // uyarlamalara ve nihai rapora "gorusme boyunca ne gozlendi" baglami olarak
+  // gider. Uyarlama kapaliysa/basarisizsa null (FR-011) — yoklugu normaldir.
+  evaluationSummary String?
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }

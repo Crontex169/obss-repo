@@ -15,11 +15,15 @@ import {
   Post,
   Req,
   Res,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import type { Multer } from 'multer';
 type MulterFile = Express.Multer.File;
@@ -28,6 +32,14 @@ import {
   LlmRateLimitGuard,
   llmQuota,
 } from '../common/guards/llm-rate-limit.guard';
+import {
+  SttRateLimitGuard,
+  sttQuota,
+} from '../common/guards/stt-rate-limit.guard';
+import {
+  MAX_AUDIO_UPLOAD_BYTES,
+  TranscriptionService,
+} from '../transcription/transcription.service';
 import { Throttle } from '@nestjs/throttler';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { AuthUser } from '../auth/decorators/current-user.decorator';
@@ -44,6 +56,10 @@ import {
   reportProblemSchema,
   type ReportProblemInput,
 } from './dto/report-problem.dto';
+import {
+  cvMatchRequestSchema,
+  type CvMatchRequestInput,
+} from './dto/cv-match.dto';
 import { InterviewOwnershipGuard } from './ownership/interview-ownership.guard';
 import { resolveUploadHardLimitBytes } from '../pdf/pdf-extraction.service';
 import { InterviewService } from './interview.service';
@@ -53,7 +69,10 @@ import { InterviewService } from './interview.service';
 @Controller('api/interviews')
 @UseGuards(SessionGuard)
 export class InterviewController {
-  constructor(private readonly interviewService: InterviewService) {}
+  constructor(
+    private readonly interviewService: InterviewService,
+    private readonly transcriptionService: TranscriptionService,
+  ) {}
 
   // §1: SessionGuard -> LlmRateLimitGuard(3/saat).
   @Post()
@@ -105,6 +124,43 @@ export class InterviewController {
         interview.id,
       ),
     };
+  }
+
+  // Ilan x CV uyum analizi. Gorusme OLUSTURMAZ — sabit rota, ':id' rotalarindan
+  // ONCE tanimlanir ki "cv-match" bir gorusme kimligi sanilmasin.
+  // Kota: gorusme olusturmaktan (3/saat) daha ucuz ama yine bir LLM cagrisidir.
+  @Post('cv-match')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(LlmRateLimitGuard)
+  @Throttle(llmQuota(10))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'jobPostingFile', maxCount: 1 },
+        { name: 'cvFile', maxCount: 1 },
+      ],
+      { limits: { fileSize: resolveUploadHardLimitBytes() } },
+    ),
+  )
+  async cvMatch(
+    @Body(new ZodValidationPipe(cvMatchRequestSchema)) dto: CvMatchRequestInput,
+    @UploadedFiles()
+    files: { jobPostingFile?: MulterFile[]; cvFile?: MulterFile[] } | undefined,
+    @Headers('accept-language') acceptLanguage: string | undefined,
+    @Req() req: Request & { user?: AuthUser },
+  ) {
+    const file = files?.jobPostingFile?.[0];
+    if (dto.jobPostingSource === 'pdf' && !file) {
+      throw new BadRequestException('PDF dosyasi yuklenmedi.');
+    }
+
+    return this.interviewService.cvJobMatch({
+      dto,
+      file,
+      cvFile: files?.cvFile?.[0],
+      acceptLanguage,
+      userId: req.user!.id,
+    });
   }
 
   // §2: kullaniciya kendi gorusmeleri (silinmisler HARIC), admin'e tumu.
@@ -160,6 +216,36 @@ export class InterviewController {
     return { reportStatus: 'ready', report: result.report };
   }
 
+  // ADR-0014: sozlu mod STT'si. LLM cagrisi DEGILDIR — 'llm' kovasindan
+  // bagimsiz ayri 'stt' kovasi kullanir. Kota iadesi (S5) BU UCA UYGULANMAZ.
+  @Post(':id/transcribe')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(InterviewOwnershipGuard, SttRateLimitGuard)
+  @Throttle(sttQuota(30))
+  @UseInterceptors(
+    FileInterceptor('audio', { limits: { fileSize: MAX_AUDIO_UPLOAD_BYTES } }),
+  )
+  async transcribe(
+    @Param('id') id: string,
+    @UploadedFile() audio: MulterFile | undefined,
+  ) {
+    if (!audio) throw new BadRequestException('Ses kaydi yuklenmedi.');
+    // Hafif on eleme — icerikten dogrulama (PDF'teki magic-byte kontrolu
+    // gibi) BILINCLI OLARAK yok: baytlar ayristirilmadan oldugu gibi Groq'a
+    // iletilir, format gecerliligini saglayici zaten kontrol eder.
+    if (!audio.mimetype.startsWith('audio/')) {
+      throw new BadRequestException('Ses dosyasi turu desteklenmiyor.');
+    }
+
+    const language = await this.interviewService.languageOf(id);
+    const result = await this.transcriptionService.transcribe(
+      audio.buffer,
+      audio.mimetype,
+      language,
+    );
+    return { text: result.text };
+  }
+
   // §7: SessionGuard -> InterviewOwnershipGuard. LLM cagrisi yok, hiz siniri yok
   // — salt telemetri (FR-034, contracts/interview-flow-rules.md §4.4).
   @Post(':id/panel-events')
@@ -185,6 +271,23 @@ export class InterviewController {
     @Req() req: Request & { user?: AuthUser },
   ): Promise<void> {
     await this.interviewService.reportProblem(id, req.user!.id, dto.message);
+  }
+
+  // Rapor paylasim linki. Uretim/iptal SAHIBINE aittir (SessionGuard +
+  // InterviewOwnershipGuard); linki okuma ucu ayri, oturumsuz bir controller'dadir
+  // (SharedReportController). LLM cagrisi yok -> LLM kotasi yok.
+  @Post(':id/share')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(InterviewOwnershipGuard)
+  createShareLink(@Param('id') id: string) {
+    return this.interviewService.createShareLink(id);
+  }
+
+  @Delete(':id/share')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(InterviewOwnershipGuard)
+  async revokeShareLink(@Param('id') id: string): Promise<void> {
+    await this.interviewService.revokeShareLink(id);
   }
 
   // 004-history contracts/history-api.md §3 — soft-delete. Guard zaten-silinmis

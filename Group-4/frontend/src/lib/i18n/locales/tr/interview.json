@@ -33,7 +33,8 @@
       "emptyUrl": "İlan bağlantısı boş olamaz.",
       "notJobPosting": "Girilen metin iş ilanı olarak anlaşılamadı. Lütfen kontrol edip tekrar deneyin.",
       "createFailed": "Görüşme oluşturulamadı"
-    }
+    },
+    "useStoredCv": "Ayarlar'daki kayıtlı CV'mi ({{fileName}}) bu mülakatta kullan"
   },
   "session": {
     "loading": "Yükleniyor...",
@@ -149,13 +150,15 @@
       "speaking": "Asistan konuşuyor",
       "listening": "Sizi dinliyorum",
       "reviewing": "Cevabınızı kontrol edin",
-      "idle": "Hazır"
+      "idle": "Hazır",
+      "transcribing": "Ses metne cevriliyor"
     },
     "reviewHint": "Söyledikleriniz aşağıda. Gerekirse düzeltip gönderin.",
     "speakAgain": "Yeniden konuş",
     "autoFlowLabel": "Otomatik akış",
     "autoFlowHint": "Kapatırsanız mikrofonu ve geçişleri kendiniz yönetirsiniz.",
-    "skipSpeech": "Okumayı geç"
+    "skipSpeech": "Okumayı geç",
+    "transcribing": "Ses metne cevriliyor..."
   },
   "hintPanel": {
     "trigger": "İpucu Göster",
@@ -200,5 +203,38 @@
     "sentToast": "Bildirimin alındı, teşekkürler.",
     "emptyError": "Lütfen bir mesaj yazın.",
     "sendFailed": "Bildirim gönderilemedi"
+  },
+  "cvMatch": {
+    "heading": "İlan–CV uyumu",
+    "description": "Mülakata başlamadan önce eksiklerini gör.",
+    "run": "Uyumu analiz et",
+    "running": "Analiz ediliyor…",
+    "failed": "Uyum analizi yapılamadı. Lütfen tekrar deneyin.",
+    "matched": "Eşleşen yetkinlikler",
+    "missing": "Eksik yetkinlikler",
+    "required": "zorunlu",
+    "focus": "Önce şuna çalış",
+    "bands": {
+      "zayif": "zayıf uyum",
+      "gelisen": "gelişen uyum",
+      "yeterli": "yeterli uyum",
+      "guclu": "güçlü uyum",
+      "ustun": "üstün uyum"
+    }
+  },
+  "share": {
+    "create": "Paylaşım linki oluştur",
+    "creating": "Oluşturuluyor…",
+    "copy": "Kopyala",
+    "copied": "Link kopyalandı.",
+    "copyManually": "Link hazır — kopyalamak için seçin.",
+    "revoke": "İptal et",
+    "revoked": "Paylaşım linki iptal edildi.",
+    "revokeFailed": "Link iptal edilemedi. Lütfen tekrar deneyin.",
+    "failed": "Paylaşım linki oluşturulamadı. Lütfen tekrar deneyin.",
+    "expiresAt": "Bu link {{date}} tarihine kadar geçerli. Linki bilen herkes raporu görebilir.",
+    "notFound": "Bu paylaşım linki geçersiz veya süresi dolmuş.",
+    "goHome": "Ana sayfaya dön",
+    "readOnlyNotice": "Paylaşılan rapor — salt okunur görünüm."
   }
 }

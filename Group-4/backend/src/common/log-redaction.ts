@@ -7,7 +7,6 @@ import { createHmac } from 'node:crypto';
 //Loglara e-posta adresinin düz hâliyle değil, geri döndürülemez bir takma adla ( acct_xxxxx ) yazılmasını sağlayan fonksiyon.
 //  Basit hash değil özellikle imzalı (HMAC) bir yöntem kullanır — çünkü e-posta adresleri tahmin edilebilir olduğundan düz hash kolayca "kırılabilir".
 
-
 // docs/SECURITY.md S8 — loglarda kisisel veri.
 //
 // Guvenlik olaylari kayit altina ALINMALIDIR (FR-012: sessiz basarisizlik

@@ -32,8 +32,6 @@ import type {
  böylece rakamlar birbirini tutmayan anlardan gelmez.
  */
 
-
-
 // research.md §3: position null ise ayri bir "Belirsiz" kovasi; sessizce goz
 // ardi edilmez. Normalizasyon TEK kaynakta (sunucu) yapilir, istemcide
 // tekrarlanmaz.
@@ -323,7 +321,9 @@ export class AdminService {
       dailyTokenUsage,
       // Pencere toplam maliyeti gunluk serinin toplamidir — ayni pencere,
       // tek dogruluk kaynagi; istemci ayrica toplamak zorunda kalmaz.
-      totalCostUsd: sumCostStrings(dailyTokenUsage.map((d) => d.estimatedCostUsd)),
+      totalCostUsd: sumCostStrings(
+        dailyTokenUsage.map((d) => d.estimatedCostUsd),
+      ),
     };
 
     if (ttlMs > 0) {
@@ -348,7 +348,9 @@ export class AdminService {
         // InterviewOwnershipGuard raporlayanin sahibi oldugunu garantiler
         // (report-problem.dto.ts), bu yuzden e-posta interview.user'dan alinir
         // — ayri bir User iliskisi eklemeye gerek yok.
-        interview: { select: { position: true, user: { select: { email: true } } } },
+        interview: {
+          select: { position: true, user: { select: { email: true } } },
+        },
       },
     });
     return rows.map((r) => ({
@@ -452,7 +454,10 @@ function buildDailySeries(
       key,
       (tokenTotals.get(key) ?? 0) + row.inputTokens + row.outputTokens,
     );
-    costTotals.set(key, (costTotals.get(key) ?? 0) + Number(row.estimatedCostUsd));
+    costTotals.set(
+      key,
+      (costTotals.get(key) ?? 0) + Number(row.estimatedCostUsd),
+    );
   }
 
   const today = startOfUtcDay(new Date());

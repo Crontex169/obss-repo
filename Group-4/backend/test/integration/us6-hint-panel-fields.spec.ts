@@ -9,17 +9,19 @@ import {
   validAnswerFor,
 } from './helpers/create-test-interview';
 import { fakeAdaptive } from './helpers/fake-adaptive';
+import { fakeQuestions } from './helpers/fake-questions';
 
 // DTO questionCount min=5 (FR-003); yalnizca ILK sorunun tip/rationale'i test
 // edilir, geri kalani null.
+// Sorular katmanli plana uymak zorunda (question-blueprint.ts) — plan burada
+// ELDE kurulmaz, fakeQuestions'tan alinir; bu test yalnizca tip/rationale ile
+// ilgileniyor.
 function questionsWithFirstHint(first: {
   tip: string | null;
   rationale: string | null;
 }) {
-  return Array.from({ length: 5 }, (_, i) => ({
-    type: 'open_ended' as const,
-    text: `Soru ${i + 1}: deneyiminizi anlatin.`,
-    options: [] as string[],
+  return fakeQuestions(5).questions.map((q, i) => ({
+    ...q,
     tip: i === 0 ? first.tip : null,
     rationale: i === 0 ? first.rationale : null,
   }));

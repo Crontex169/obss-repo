@@ -13,7 +13,6 @@ Admin görüşme listesini açarken URL'e şöyle parametreler eklenebiliyor:  
 
  */
 
-
 // contracts/admin-api.md §1 query parametreleri.
 // pageSize varsayilani 20 (Clarifications Q4), ust siniri 100 (sozlesme) —
 // research.md §5'teki "ust sinir 20" ifadesiyle celiskiliydi, sozlesme esas

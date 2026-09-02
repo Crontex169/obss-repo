@@ -12,9 +12,8 @@ import {
 import type { Request, Response } from 'express';
 import { Observable, tap } from 'rxjs';
 
-// Her isteğin ne kadar sürdüğünü ölçüp loglayan ara katman (interceptor). Amaç tek bir isteği izlemek değil, 
+// Her isteğin ne kadar sürdüğünü ölçüp loglayan ara katman (interceptor). Amaç tek bir isteği izlemek değil,
 // "hangi uç nokta yavaş" sorusuna toplu olarak cevap verebilmek — 1 saniyeyi aşan istekler  warn  seviyesinde ayrıca işaretlenir.
-
 
 // Her HTTP istegi icin duvar saati suresi. Amac tek bir istegi izlemek DEGIL,
 // "hangi endpoint yavas" sorusunu olculebilir kilmak: log satirlari toplanip

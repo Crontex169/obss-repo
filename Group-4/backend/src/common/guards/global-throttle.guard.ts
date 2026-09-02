@@ -11,12 +11,10 @@ import {
 } from '@nestjs/throttler';
 import { logThrottled, setRetryAfter } from './throttle-response';
 
-
-//Tüm uç noktalarda geçerli, IP başına kaba bir emniyet freni (300 istek/60 sn gibi). 
-//  ThrottlerGuard 'ın standart hâlini değil özel bir versiyonunu kullanır çünkü aksi hâlde bu guard, 
-// LLM uç noktalarındaki kullanıcı-bazlı kotayı da yanlışlıkla IP-bazlı uygulardı — 
+//Tüm uç noktalarda geçerli, IP başına kaba bir emniyet freni (300 istek/60 sn gibi).
+//  ThrottlerGuard 'ın standart hâlini değil özel bir versiyonunu kullanır çünkü aksi hâlde bu guard,
+// LLM uç noktalarındaki kullanıcı-bazlı kotayı da yanlışlıkla IP-bazlı uygulardı —
 // burada bilerek yalnızca "default" kovaya bakıyor, LLM kovasına karışmıyor.d
-  
 
 // docs/SECURITY.md S3 — tum rotalarda gecerli, IP basina kaba emniyet freni.
 // app.module.ts'te APP_GUARD olarak kayitlidir.
@@ -48,7 +46,7 @@ export class GlobalThrottleGuard extends ThrottlerGuard {
   // varsayilani olarak kalir (bu kova kullaniciya degil kotuye kullanima
   // bakar); degisen yalnizca istemcinin ne zaman tekrar deneyecegini
   // standart yerden okuyabilmesidir.
-  // eslint-disable-next-line @typescript-eslint/require-await
+
   protected async throwThrottlingException(
     context: ExecutionContext,
     detail: ThrottlerLimitDetail,

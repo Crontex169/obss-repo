@@ -55,6 +55,12 @@ export const envSchema = z
     // davranabilir; burada onemli olan tek sey degerin bos olmamasidir,
     // baglanti gecerliligini ioredis kendisi bildirir (loglanir).
     REDIS_URL: z.string().min(1).optional(),
+    // ADR-0014: Groq Whisper (STT). LLM_API_KEY'DEN BAGIMSIZ — LLM_PROVIDER
+    // "deepseek" olsa bile sozlu modun STT kismi hep Groq'tan gelir. Bossa
+    // istek servis katmaninda TranscriptionProviderError firlatir (frontend
+    // bunu normal saglayici hatasi gibi isler, ayri bir "yapilandirilmamis"
+    // durumu yok — docs/superpowers/specs/2026-08-24-stt-whisper-design.md).
+    GROQ_API_KEY: z.string().min(1).optional(),
     MAIL_TRANSPORT: z.enum(['console', 'resend']).default('console'),
     MAIL_FROM: z.string().optional().default('no-reply@example.com'),
     RESEND_API_KEY: z.string().optional().default(''),

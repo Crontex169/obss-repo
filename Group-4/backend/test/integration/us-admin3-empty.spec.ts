@@ -196,7 +196,9 @@ describe('US3-admin istatistikler: bos durum ve tam aritmetik', () => {
       stats.dailyTokenUsage.map((d) => [d.date, d.estimatedCostUsd]),
     );
     expect(costByDate.get(today.toISOString().slice(0, 10))).toBe('0.003500');
-    expect(costByDate.get(yesterday.toISOString().slice(0, 10))).toBe('0.000100');
+    expect(costByDate.get(yesterday.toISOString().slice(0, 10))).toBe(
+      '0.000100',
+    );
     expect(stats.totalCostUsd).toBe('0.003600');
   });
 });

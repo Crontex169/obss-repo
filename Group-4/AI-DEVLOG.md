@@ -58,3 +58,43 @@ Son olarak Haiku modelini ise az kullandık daha çok Edit gerektirmeyen ve bizi
 ## Kullandığımız MCP'ler
 
 Playwright (Test) - Pen (UI) - Codebase (Memory)
+
+## 2026-08-31 — Özellik turu (Claude Opus 5, Claude Code)
+
+Uygulamaya eklenebilecek özellikler için önce kod tabanı tarandı; öneri
+listesinin ilk iki maddesinin (görüşmeye kaldığı yerden devam, rapordaki
+soru bazlı doğru cevap) ZATEN uygulanmış olduğu doğrulandı ve atlandı —
+dokümandan okunan izlenimle yetinmeyip `session.tsx` / `llm/report.ts`
+kaynağına bakmak bu iki yanlış işi baştan eledi.
+
+Bu turda uygulananlar:
+
+1. **Kalıcı CV profili** — `User.cvText/cvFileName/cvUpdatedAt`,
+   `POST|DELETE /api/users/me/cv`, Ayarlar'da kart; yeni görüşme kayıtlı
+   CV'yi varsayılan bağlam olarak kullanır (`useStoredCv` ile kapatılabilir,
+   yüklenen dosya her zaman kayıtlıyı ezer). PDF saklanmaz, yalnızca metin.
+2. **İlan × CV uyum analizi** — `POST /api/interviews/cv-match`, yeni
+   `cv_job_match` LLM operasyonu; eşleşen/eksik yetkinlikler kanıtla,
+   bant + skor (rapor rubriğiyle aynı `SCORE_BANDS` kaynağı).
+3. **Rapor paylaşım linki** — `Interview.shareToken/shareExpiresAt`,
+   `POST|DELETE /api/interviews/:id/share`, anonim
+   `GET /api/shared-reports/:token` ve `/r/:token` sayfası. Link süreli
+   (7 gün), iptal edilebilir; paylaşılan gövdede kullanıcı kimliği yok.
+4. **Sözlü mod STT → Groq Whisper (ADR-0014)** — commit'li plan
+   (`docs/superpowers/plans/2026-08-24-stt-whisper.md`) 16 görev olarak
+   uygulandı: `transcription` modülü (port + Groq/yapılandırılmamış
+   adapter), `stt` hız-sınırı kovası (30/saat), `POST /:id/transcribe`,
+   istemcide `MediaRecorder`+`AnalyserNode` tabanlı kayıt, `transcribing`
+   fazı. TTS'e dokunulmadı.
+
+Doğrulama: backend `tsc` temiz, 40 jest paketi / 280 test yeşil; frontend
+`tsc -b` temiz, 37 vitest dosyası / 303 test yeşil. Entegrasyon (e2e) testleri
+Docker/Postgres kapalı olduğu için bu oturumda KOŞULMADI — `cv-profile`,
+`report-share` ve `us8-voice-transcribe` paketleri veritabanı ayağa
+kalktığında çalıştırılmalı.
+
+Bir hata ve düzeltmesi: kontrol için çalıştırılan `npm run lint` backend'de
+`eslint --fix` olduğu için ilgisiz dosyaları biçimlendirdi; ardından yapılan
+`git stash`/`pop` çakışıp sessizce başarısız oldu. Çalışma stash'te sağlam
+kaldı, kullanıcı `git restore` + `git stash pop` ile geri aldı. Ders: doğrulama
+için `npx eslint` (fix'siz) kullanılır.
