@@ -88,6 +88,23 @@ export const envSchema = z
       .positive('LLM_REQUEST_TIMEOUT_MS pozitif bir tamsayi olmalidir')
       .default(30_000),
 
+    // --- Odeme / abonelik (010-odeme-abonelik) ---
+    // Dorduncusu de ZORUNLU (opsiyonel DEGIL): eksik anahtarla acilan bir
+    // uygulama odeme uclarinda calisma aninda patlar; acilista patlamasi
+    // yeglenir. YALNIZCA test modu anahtari kullanilir — `sk_live_...` bu
+    // projeye girmez (specs/010-odeme-abonelik/quickstart.md).
+    STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY zorunludur'),
+    // Webhook imzasinin dogrulandigi sir. Bu uc noktanin TEK korumasi budur:
+    // Stripe cerez gondermedigi icin oturum guard'i konulamaz ve OriginGuard
+    // Origin basligi olmayan istekleri kasitli olarak gecirir.
+    STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET zorunludur'),
+    // Fiyat kimlikleri: fiyatin kendisi (tutar, para birimi, donem) Stripe'ta
+    // tanimlidir, uygulama fiyati ne saklar ne dogrular.
+    STRIPE_PRICE_PRO: z.string().min(1, 'STRIPE_PRICE_PRO zorunludur'),
+    STRIPE_PRICE_PRO_PLUS: z
+      .string()
+      .min(1, 'STRIPE_PRICE_PRO_PLUS zorunludur'),
+
     // --- PDF (002-interview) — FR-002 ---
     PDF_MAX_SIZE_MB: z.coerce
       .number()

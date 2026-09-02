@@ -16,6 +16,11 @@ describe('validateEnv — guvenlik alanlari', () => {
     LLM_BASE_URL: 'https://api.groq.com/openai/v1',
     LLM_API_KEY: 'key',
     LLM_MODEL: 'openai/gpt-oss-120b',
+    // 010-odeme-abonelik: dorduncusu de zorunlu, base'de bulunmalari sart.
+    STRIPE_SECRET_KEY: 'sk_test_x',
+    STRIPE_WEBHOOK_SECRET: 'whsec_x',
+    STRIPE_PRICE_PRO: 'price_pro',
+    STRIPE_PRICE_PRO_PLUS: 'price_pro_plus',
   };
 
   describe('S9 — ADMIN_PASSWORD parola politikasina tabidir', () => {

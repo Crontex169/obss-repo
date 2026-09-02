@@ -30,6 +30,25 @@ model User {
   cvText        String?
   cvFileName    String?
   cvUpdatedAt   DateTime?
+  // 010-odeme-abonelik: aboneligin DURUM MAKINESI burada degil odeme
+  // saglayicisinda yasar. Ikinci bir kopyasini tutsaydik (Subscription/Plan/
+  // Invoice tablolari) iki kaynak ayrisabilir ve faturasi kullaniciya cikardi.
+  // Burada saklanan sey durum degil SONUCTUR. Etkin plan TURETILIR, saklanmaz:
+  //   plan = (proUntil && proUntil > now()) ? planTier : "free"   (billing/plan.ts)
+  //
+  // stripeCustomerId @unique: bir saglayici musterisi en fazla bir kullaniciya
+  // karsilik gelir. Odeme oturumu acilirken, kullanici YONLENDIRILMEDEN ONCE
+  // yazilir — gelen webhook'lar kullaniciya bu alan uzerinden baglanir, govdeden
+  // gelen metadata'ya guvenilmez.
+  stripeCustomerId String?  @unique
+  // "pro" | "pro_plus"; null = hic ucretli olmamis. proUntil gecmise dustugunde
+  // BU ALAN SILINMEZ: kullanicinin en son hangi kademede oldugu bilgisi korunur
+  // ama hicbir hak vermez.
+  planTier         String?
+  // Odenmis donemin bitis ani. Iptal bu tarihi DEGISTIRMEZ (kullanici odedigi
+  // donemi kullanir); yenileme ileri tasir; odeme alinamazsa uzamaz ve abonelik
+  // kendiliginden sona erer. Bu yuzden iptal/borc takibi icin kod YOKTUR.
+  proUntil         DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

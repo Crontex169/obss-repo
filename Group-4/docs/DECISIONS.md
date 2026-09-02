@@ -32,6 +32,7 @@
 | ADR-0012 | Oturum çerezi duruşu + CSRF savunması: açık yapılandırma + `OriginGuard` | ✅ Kabul | `docs/SECURITY.md` S5 (#64) |
 | ADR-0013 | Adaptif uyarlamaya ön değerlendirme bağlamının genişletilmesi | ✅ Kabul | `002-interview` (FR-010/FR-030) |
 | ADR-0014 | Sözlü mod STT: Groq Whisper (tarayıcı yerine, TTS aynen kalır) | ✅ Kabul | `docs/superpowers/specs/2026-08-24-stt-whisper-design.md` |
+| ADR-0015 | Ödeme: Stripe test modu; abonelik durumunun sahibi sağlayıcıdır | ✅ Kabul | `specs/010-odeme-abonelik` |
 
 ---
 
@@ -1169,3 +1170,110 @@ karmaşıklığı ikiye katlıyor, kazancı marjinal.
 - Sunucu tarafı `POST /api/interviews/:id/answers` sözleşmesi DEĞİŞMEDİ —
   transkript istemcide `content` alanına yazılıp normal cevap gibi gönderilir.
 
+---
+
+## ADR-0015 — Ödeme Sağlayıcısı: Stripe; Abonelik Durumunun Sahibi Sağlayıcıdır
+
+- **Tarih:** 2026-09-02
+- **Durum:** ✅ Kabul edildi
+- **Sahibi:** brainstorming diyaloğu (bkz. `specs/010-odeme-abonelik/spec.md`, `plan.md`)
+
+### Bağlam
+
+Uygulamaya aylık abonelik geldi: `free` / `pro` / `pro_plus`, kademeler arasındaki
+tek fark aylık görüşme kotası (3 / 50 / 100). Kotanın bağlanacağı yüzey zaten
+vardı — LLM maliyeti `TokenUsage.estimatedCostUsd` ile kullanıcı bazında
+izleniyor ve saatlik hız sınırı `@LlmRateLimit` ile uygulanıyordu. Eksik olan
+ticari katmandı: kim ne kadar hak alıyor, parayı kim tahsil ediyor, abonelik
+durumu nerede yaşıyor.
+
+### Karar
+
+**Ödeme sağlayıcısı Stripe'tır (yalnızca test modu).** Ödeme, Stripe'ın
+barındırdığı Checkout sayfasında tamamlanır; abonelik yönetimi (ödeme yöntemi,
+kademe değişimi, iptal) Stripe Customer Portal'a devredilir. Uygulama kendi
+ödeme formunu yazmaz — kart verisi hiçbir katmanda alınmaz, işlenmez, loglanmaz.
+
+**Abonelik durum makinesinin sahibi Stripe'tır.** Uygulamada `Subscription`,
+`Plan` ve `Invoice` tabloları BİLİNÇLİ OLARAK yoktur. `User` üstünde üç alan
+tutulur — `stripeCustomerId`, `planTier`, `proUntil` — ve etkin plan saklanmaz,
+türetilir:
+
+```
+plan = (proUntil && proUntil > now()) ? planTier : "free"
+```
+
+Kota sayacı da ayrı bir tabloda tutulmaz: bu ay kullanılan hak, ay başından beri
+oluşturulmuş `Interview` satırları sayılarak bulunur.
+
+### Değerlendirilen Alternatifler
+
+**A. Kendi abonelik/fatura tablolarımız (Stripe yalnızca tahsilat yapar).**
+Plan matrisi büyürse (yıllık, takım planı, kupon) gerekli olurdu. Bugün tek bir
+ücretli özellik ve tek bir kısıt var; bu tabloların hepsi boş kalırdı. Klasik
+erken soyutlama.
+
+**B. `@better-auth/stripe` eklentisi.** Better Auth zaten kurulu (1.6.25) ve
+eklenti checkout/portal/webhook/abonelik tablosunu paket olarak getiriyor. Elendi
+çünkü (a) yeni bir bağımlılık ve kendi şemasını dayatıyor, (b) faturalandırmayı
+zaten özel hook'lar ve e-posta bazlı hız sınırlamayla dolu olan
+`better-auth.config.ts`'e gömüyor. Bu dilimde yazılacak kod zaten küçük olduğu
+için eklentinin kazandırdığı satır, getirdiği bağlanmayı karşılamıyor.
+
+**C. iyzico (sandbox).** Türkiye için gerçekçi (TL, 3D Secure, taksit), ancak
+abonelik API'si Stripe'a göre zayıf; plan/döngü yönetiminin bir kısmını biz
+yazardık. Case-study kapsamında ödeme akışının kendisi değil, kotanın doğru
+uygulanması öğretici olan kısım.
+
+### Gerekçe (Belirleyici Eksen: Tek Doğruluk Kaynağı)
+
+`canceled`, `past_due`, `unpaid`, `incomplete` gibi durumların hepsi bizim
+açımızdan tek bir soruya indirgeniyor: *bu kullanıcı şu an ödenmiş bir dönemin
+içinde mi?* Cevap `proUntil` karşılaştırmasıdır.
+
+Durumu ikinci kez, eksik biçimde modelleseydik iki kaynak ayrışabilirdi ve
+ayrışmanın faturası doğrudan kullanıcıya çıkardı: parasını ödemiş kullanıcının
+ücretsiz planda kalması. Sonucu saklayıp durumu saklamamak bu sınıf hatayı
+tasarımdan siliyor.
+
+Aynı mantık kota sayacında da geçerli: sayaç `Interview` satırlarının kendisi
+olduğu için sayaç ile gerçek ayrışamaz. Yan faydası, "yarım kalan görüşmeye devam
+etmek hak düşürmesin" kuralının kod gerektirmemesi — devam etmek yeni satır
+yaratmaz.
+
+### Riskler ve Azaltma
+
+- **R1 — Webhook uç noktasının tek koruması imzadır.** Stripe çerez göndermediği
+  için oturum guard'ı konulamaz ve `OriginGuard` Origin başlığı olmayan istekleri
+  kasıtlı olarak geçirir. İmza doğrulaması atlanırsa adresi bilen herkes kendine
+  ücretli plan tanımlayabilir. *Azaltma:* `constructEvent` ile ham gövde üzerinden
+  doğrulama; doğrulanmadan hiçbir alan okunmaz ve hiçbir yazma yapılmaz; en
+  kritik test geçersiz imzada veritabanının DEĞİŞMEDİĞİNİ doğrular.
+- **R2 — `success_url`'e güvenmek.** O adresi kullanıcı doğrudan da açabilir.
+  *Azaltma:* plan yükseltmesi yalnızca doğrulanmış webhook ile yapılır; dönüş
+  sayfası yalnızca okur ve yoklar.
+- **R3 — Webhook tekrarı.** Stripe aynı olayı yeniden gönderir. *Azaltma:*
+  `proUntil = max(mevcut, dönem sonu)` ataması idempotenttir; "N gün ekle" tarzı
+  artırma kullanılmaz.
+- **R4 — Kota sayımı yarışı.** Aynı anda gelen iki istek limiti bir görüşme
+  aşabilir. *Azaltma:* kabul edilen tavan olarak kaydedildi (`ponytail:` yorumu);
+  gerekirse sayım `SERIALIZABLE` transaction'a alınır.
+- **R5 — Kota penceresi ile fatura dönemi örtüşmüyor.** Pencere takvim ayı; ayın
+  15'inde abone olan ilk ay kısmi pencere alır. *Azaltma:* ücretli kademelerin
+  kotası yüksek olduğu için kayma mağduriyet üretmiyor; alternatifi iki ayrı
+  pencere mantığıydı.
+
+### Sonuçlar / Etkiler
+
+- Yeni bağımlılık: `stripe` Node SDK (backend).
+- Yeni env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`,
+  `STRIPE_PRICE_PRO_PLUS` — dördü de zorunlu, uygulama eksikse açılışta durur.
+- `User` şeması üç alan büyüdü; yeni tablo YOK, yeni indeks yalnızca
+  `stripeCustomerId` üzerinde tekillik için.
+- `main.ts` artık `rawBody: true` ile açılıyor (webhook imzası ham gövde ister).
+- Yeni HTTP durumu: kota aşımında `402`. Saatlik hız sınırının `429`'undan
+  ayrıdır ve onun yerine GEÇMEZ — iki katman birlikte çalışır.
+- İptal ve borç takibi (dunning) için yazılan kod YOKTUR; davranış `proUntil`'in
+  dolmasından gelir. Zamanlanmış iş (cron) gerekmez.
+- Kapsam dışı: fatura arşivi, kupon, yıllık plan, takım planı, vergi belgesi,
+  para iadesi, kademeye bağlı özellik kilidi.

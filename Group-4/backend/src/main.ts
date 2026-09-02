@@ -9,7 +9,13 @@ import { HttpExceptionFilter } from './common/http-exception.filter';
 import { RequestTimingInterceptor } from './common/request-timing.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: 010-odeme-abonelik. Stripe webhook imzasi HAM govde uzerinden
+  // dogrulanir; govde JSON'a ayristirilip yeniden serilestirilirse imza TUTMAZ
+  // ve tum webhook'lar sessizce 400'e duser. Bu secenek olmadan odeme akisi
+  // calismaz (specs/010-odeme-abonelik/plan.md "Güvenlik").
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // docs/SECURITY.md S11: ters vekil arkasinda `req.ip` vekilin IP'sini doner ve
   // IP bazli siklik siniri (GlobalThrottleGuard) tum kullanicilar icin TEK ortak
