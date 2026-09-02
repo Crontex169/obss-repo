@@ -15,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { LlmModule } from './llm/llm.module';
 import { InterviewModule } from './interview/interview.module';
+import { BillingModule } from './billing/billing.module';
 import { PreAssessmentModule } from './pre-assessment/pre-assessment.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
@@ -66,6 +67,8 @@ import { validateEnv } from './config/env.validation';
     AuthModule,
     LlmModule,
     InterviewModule,
+    // 010-odeme-abonelik: odeme/abonelik uclari (checkout, portal, webhook).
+    BillingModule,
     PreAssessmentModule,
     AdminModule,
     UsersModule,
