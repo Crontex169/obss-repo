@@ -241,6 +241,45 @@ geri çekilme mekanizması **yok**; ölçekte gerçek darboğaz haline gelirse y
 katmana (ADR ile) geçilir ya da `LlmService` seviyesinde paylaşılan bir token-bucket
 eklenir.
 
+### 3.5.1 Plan kotası (402) — hız sınırından AYRIDIR (010-odeme-abonelik)
+
+Aylık plan kotası, §3.5'teki saatlik LLM sınırının **yerine geçmez**; onun **üstüne**
+eklenen ayrı bir katmandır. İkisi farklı amaçlara hizmet eder ve farklı kodlarla
+ayrışır:
+
+| | Saatlik LLM sınırı (§3.5) | Aylık plan kotası |
+|---|---|---|
+| Amaç | Kötüye kullanım savunması | Ticari kısıt |
+| Kod | `429 TooManyRequests` | `402 PaymentRequired` |
+| İstemcinin yapması gereken | Beklemek | Planı yükseltmek |
+| Kaynak | `LlmRateLimitGuard` | `PlanQuotaGuard` |
+
+Kota aşımı gövdesi ortak zarfa (§2) uyar:
+
+```jsonc
+{
+  "statusCode": 402,
+  "error": "PaymentRequired",
+  "message": "Bu ayki görüşme hakkınız doldu...",
+  "details": { "plan": "free", "used": 3, "limit": 3 }
+}
+```
+
+**Guard sırası bağlayıcıdır:** `@UseGuards(PlanQuotaGuard, LlmRateLimitGuard)`.
+`LlmRateLimitGuard` sayacı istek öncesi artırdığı için, kota guard'ı önce koşmazsa
+aylık hakkı zaten bitmiş kullanıcı `402` ile reddedilirken bir de saatlik hakkını
+yakar.
+
+Kota yalnızca **yeni görüşme oluşturmayı** kısıtlar (`POST /api/interviews`).
+`:id/answers`, `:id/report/retry` gibi uçlar guard almaz — yarım kalan görüşmeye
+devam etmek yeni satır yaratmadığı için kota tüketmez.
+
+Sonuç olarak `free` kademede saatlik sınır (3/saat) fiilen erişilemez: aylık kota da
+3 olduğundan `402` her zaman önce çarpar. Saatlik sınıra yalnızca ücretli kademeler
+(50/100) ulaşabilir.
+
+Ayrıntı: `specs/010-odeme-abonelik/`, ADR-0015.
+
 ### 3.6 Auth hız sınırları (LLM dışı)
 
 Auth uçları LLM kotasından bağımsızdır; her biri **kendi** sayacını tutar

@@ -286,7 +286,7 @@ seçimi için yapılan deneysel doğrulama, T001).
 
 | Model | Ait olduğu dilim | Not |
 |-------|------|-----|
-| `User`, `Session`, `Account`, `Verification` | 001-auth-rol | Better Auth çekirdek tabloları, `@@map` ile küçük harf tablo adı; `User.role` = "user"\|"admin"; `User.cvText`/`cvFileName`/`cvUpdatedAt` = kalıcı CV profili (PDF DEĞİL, çıkarılmış metin); `User.kvkkConsentAt` = KVKK onay damgası (null → popup gösterilir, FR-020); `Verification` 006-sifre-sifirlama sıfırlama token'larını da taşır |
+| `User`, `Session`, `Account`, `Verification` | 001-auth-rol | Better Auth çekirdek tabloları, `@@map` ile küçük harf tablo adı; `User.role` = "user"\|"admin"; `User.cvText`/`cvFileName`/`cvUpdatedAt` = kalıcı CV profili (PDF DEĞİL, çıkarılmış metin); `User.kvkkConsentAt` = KVKK onay damgası (null → popup gösterilir, FR-020); `User.stripeCustomerId`/`planTier`/`proUntil` = abonelik (010-odeme-abonelik — etkin plan SAKLANMAZ, bu ikisinden türetilir); `Verification` 006-sifre-sifirlama sıfırlama token'larını da taşır |
 | `Interview`, `Question`, `Answer`, `Report` | 002-interview | PascalCase tablo adı (`@@map` yok); soft-delete `deletedAt` alanı (004-history bunu kullanır); `shareToken`/`shareExpiresAt` — rapor paylaşım linki (süreli, iptal edilebilir) |
 | `TokenUsage` | Cross-cutting (şema sahibi: 003-pre-assessment) | Her LLM çağrısında provider/model/token/maliyet kaydı — 005-admin'in istatistik ekranı bunu okuyacak |
 | `PreAssessment`, `CompetencyReport` | 003-pre-assessment | Meslek-bağımsız girdi enum'ları; `experienceLevel` türetilmiş alan (002-interview FR-021 bunu okur) |
@@ -310,6 +310,7 @@ oluşturuldu — 003 bunları **devralır**, yeniden tanımlamaz.
 | `backend/.env` (git'e girmez) | Gerçek local değerler — `cp .env.example backend/.env` |
 | `frontend/.env.example` / `frontend/.env` | `VITE_API_URL` (mutlak URL mi proxy mi) + `VITE_GOOGLE_CLIENT_ID` (One Tap; kök `GOOGLE_CLIENT_ID` ile aynı olmalı) |
 | `backend/src/config/env.validation.ts` | Zod ile zorunlu alan kontrolü — eksikse backend başlamaz |
+| `STRIPE_*` (4 anahtar) | Ödeme/abonelik — dördü de ZORUNLU, yalnızca test modu. Kurulum: `specs/010-odeme-abonelik/quickstart.md` |
 | `docker-compose.yml` | Local `auth-postgres` container (Postgres 16, port 5432, `mock_interview` DB) |
 
 ---

@@ -98,3 +98,56 @@ Bir hata ve düzeltmesi: kontrol için çalıştırılan `npm run lint` backend'
 `git stash`/`pop` çakışıp sessizce başarısız oldu. Çalışma stash'te sağlam
 kaldı, kullanıcı `git restore` + `git stash pop` ile geri aldı. Ders: doğrulama
 için `npx eslint` (fix'siz) kullanılır.
+
+## 2026-09-02 — Ödeme ve abonelik dilimi (Claude Opus 5, Claude Code)
+
+`specs/010-odeme-abonelik/` spec → plan → görev listesi → uygulama.
+Aylık abonelik: **Free 3 / Pro 50 / Pro+ 100** görüşme. Kademeler arasındaki
+tek fark kota; sesli mod, PDF rapor ve geçmiş tüm planlarda açık.
+
+**Belirleyici karar (ADR-0015):** abonelik durum makinesinin sahibi ödeme
+sağlayıcısıdır. `Subscription`/`Plan`/`Invoice` tablosu YOK; `User` üstünde üç
+alan var (`stripeCustomerId`, `planTier`, `proUntil`) ve etkin plan saklanmaz,
+türetilir. İptal ve borç takibi için **yazılan kod yoktur** — `proUntil` dolar,
+kullanıcı kendiliğinden `free` olur, cron gerekmez. Kota sayacı da ayrı tabloda
+değil: bu ay açılmış `Interview` satırları sayılır, böylece sayaç ile gerçek
+ayrışamaz ve "yarım kalan görüşmeye devam etmek hak düşürmez" kuralı ek kod
+istemez.
+
+Fazlar: ortak altyapı → kota guard'ı (ödemesiz çalışır) → Stripe checkout/
+portal/webhook → sona erme & kademe değişimi (sıfır yeni kod) → `/me` alanları
+→ frontend.
+
+**Güvenlik:** webhook'un tek koruması Stripe imzasıdır (Stripe çerez gönderemez,
+`OriginGuard` da Origin'siz isteği kasıtlı geçirir). En kritik test, geçersiz
+imzada yanıtın 400 olmasının yanı sıra **veritabanının değişmediğini ve Stripe
+API'sine hiç çıkılmadığını** doğrular. Idempotency `max(mevcut, dönem sonu)`
+ataması ile sağlanır. Kart verisi hiçbir katmanda toplanmaz; fiyat da hiçbir
+yerde saklanmaz.
+
+Yeni HTTP durumu: kota aşımında **402**, saatlik sınırın 429'undan ayrı
+(`docs/API_CONVENTIONS.md` §3.5.1). Yan sonuç: `free` kademede saatlik sınır
+fiilen erişilemez hâle geldi (aylık kota da 3), bu yüzden `us1-rate-limit`
+testi kullanıcıyı ücretli plana alacak şekilde güncellendi.
+
+Doğrulama: backend `tsc` temiz, unit 41 paket / 290 test yeşil; frontend
+`tsc -b` + `vite build` temiz, 40 vitest dosyası / 322 test yeşil. Entegrasyon
+paketinde 106 paket geçiyor.
+
+İki dürüst not:
+
+1. **Depoda bu dilimden önce kırık 4 entegrasyon testi vardı** (`us2-answer-immutable`,
+   `us2-sequential-flow`, `us5-report-unanswered`, `us5-retry-rate-limit`).
+   Guard geçici kapatılıp ölçüldü: bu dilim olmadan da kırıklar, önceki
+   oturumların işinden geliyorlar.
+2. **Entegrasyon paketi kararsız**: seri koşuda bazı testler düz `GET` üzerinde
+   `429` alıyor — global `default` kovası IP başına 300 istek/60sn ve tüm paket
+   tek IP'den akıyor. İzole koşuda geçiyorlar. Var olan bir sorun; bu dilimin 9
+   yeni test dosyası istek yükünü artırdığı için daha sık tetikleniyor. Kalıcı
+   çözüm paket geneli (test ortamında global throttle'ı atlamak) ve bu dilimin
+   kapsamı dışında bırakıldı.
+
+Süreç notu: çalışma ağacında dilime başlarken 97 commit'lenmemiş değişiklik
+vardı ve dokunulan dosyaların çoğu ortaktı. Kendi hunk'ları geçici olarak geri
+alınıp mevcut iş ayrı bir commit'e (`23561a4`) alındı, sonra dilim temiz
+commit'lendi — aksi hâlde hangi değişikliğin hangi işe ait olduğu okunamazdı.
