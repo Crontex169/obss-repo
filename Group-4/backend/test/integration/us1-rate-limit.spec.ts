@@ -16,6 +16,18 @@ describe('POST /api/interviews (US1 hiz siniri)', () => {
   beforeAll(async () => {
     ctx = await createInterviewTestApp();
     cookies = await registerAndSignIn(ctx.app, ctx.prisma, email);
+
+    // 010-odeme-abonelik: bu test SAATLIK hiz sinirini (3/saat) olcer. Ucretsiz
+    // planin AYLIK kotasi da 3'tur ve PlanQuotaGuard, LlmRateLimitGuard'dan
+    // ONCE kosar (FR-009) — dolayisiyla ucretsiz bir kullanici 4. istekte
+    // 429'a degil 402'ye carpar ve saatlik sinir hic gozlemlenemez.
+    //
+    // Kullanici ucretli plana alinarak aylik kota (50) baglayici olmaktan
+    // cikarilir; olculmek istenen saatlik sinir yeniden gorunur olur.
+    await ctx.prisma.user.update({
+      where: { email },
+      data: { planTier: 'pro', proUntil: new Date(Date.now() + 86_400_000) },
+    });
   });
 
   afterAll(async () => {

@@ -11,6 +11,7 @@ import { InterviewController } from './interview.controller';
 import { SharedReportController } from './shared-report.controller';
 import { InterviewService } from './interview.service';
 import { InterviewOwnershipGuard } from './ownership/interview-ownership.guard';
+import { PlanQuotaGuard } from '../common/guards/plan-quota.guard';
 
 @Module({
   imports: [
@@ -28,6 +29,14 @@ import { InterviewOwnershipGuard } from './ownership/interview-ownership.guard';
   // ayni servisi kullanir, ayri controller olmasinin sebebi InterviewController'in
   // SINIF SEVIYESINDEKI SessionGuard'idir.
   controllers: [InterviewController, SharedReportController],
-  providers: [InterviewService, PdfExtractionService, InterviewOwnershipGuard],
+  providers: [
+    InterviewService,
+    PdfExtractionService,
+    InterviewOwnershipGuard,
+    // 010-odeme-abonelik: PrismaService enjekte ettigi icin provider olarak
+    // kayitli olmali. YALNIZCA POST / uzerinde kullanilir — :id/* uclarina
+    // baglanmaz, cunku var olan gorusmeye devam etmek kota tuketmez.
+    PlanQuotaGuard,
+  ],
 })
 export class InterviewModule {}

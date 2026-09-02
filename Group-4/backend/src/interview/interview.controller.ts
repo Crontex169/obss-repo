@@ -42,6 +42,7 @@ import {
 } from '../transcription/transcription.service';
 import { Throttle } from '@nestjs/throttler';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { PlanQuotaGuard } from '../common/guards/plan-quota.guard';
 import type { AuthUser } from '../auth/decorators/current-user.decorator';
 import {
   createInterviewSchema,
@@ -74,9 +75,15 @@ export class InterviewController {
     private readonly transcriptionService: TranscriptionService,
   ) {}
 
-  // §1: SessionGuard -> LlmRateLimitGuard(3/saat).
+  // §1: SessionGuard -> PlanQuotaGuard(aylik plan kotasi) -> LlmRateLimitGuard(3/saat).
+  //
+  // SIRA KASITLIDIR (010-odeme-abonelik FR-009): LlmRateLimitGuard sayaci
+  // istek ONCESI artirir. Kota guard'i once kosmasaydi, aylik hakki zaten
+  // bitmis kullanici 402 ile reddedilirken bir de saatlik hakkini yakardi.
+  //
+  // Bu iki guard birbirinin yerine GECMEZ: 429 "yavasla", 402 "planini yukselt".
   @Post()
-  @UseGuards(LlmRateLimitGuard)
+  @UseGuards(PlanQuotaGuard, LlmRateLimitGuard)
   @Throttle(llmQuota(3))
   // docs/SECURITY.md S4: sert boyut siniri multer katmanindadir — servis
   // katmanindaki kontrol dosya tamamen bellege alindiktan SONRA calisiyordu.
