@@ -13,6 +13,11 @@ import {
 import { verifyPassword } from 'better-auth/crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfExtractionService } from '../pdf/pdf-extraction.service';
+import {
+  currentMonthStartUtc,
+  monthlyQuotaFor,
+  resolvePlan,
+} from '../billing/plan';
 import { sanitizeFreeText } from '../interview/llm/prompt-shared';
 import {
   checkAccountDeleteRateLimit,
@@ -32,7 +37,14 @@ export class UsersService {
   async getKvkkConsent(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { kvkkConsentAt: true, cvFileName: true, cvUpdatedAt: true },
+      select: {
+        kvkkConsentAt: true,
+        cvFileName: true,
+        cvUpdatedAt: true,
+        // 010-odeme-abonelik: etkin plan bu iki alandan TURETILIR.
+        planTier: true,
+        proUntil: true,
+      },
     });
     // hasPassword: hesap silme onayinin hangi bicimde alinacagini belirler
     // (parola girisi mi, yalnizca onay kutusu mu). Yalnizca-Google hesapta
@@ -42,9 +54,23 @@ export class UsersService {
       where: { userId, providerId: 'credential', NOT: { password: null } },
       select: { id: true },
     });
+    // 010-odeme-abonelik (FR-018): plan ve kalan hak. Kota matrisi BURADA
+    // TEKRAR YAZILMAZ — PlanQuotaGuard ile AYNI kaynaktan (billing/plan.ts) ve
+    // AYNI sorguyla okunur. Iki yer ayri hesaplasaydi arayuz "hakkin var"
+    // derken sunucu 402 donebilirdi.
+    const plan = resolvePlan(user);
+    const interviewsUsed = await this.prisma.interview.count({
+      // `deletedAt` filtresi guard'da oldugu gibi burada da YOK: silme hak
+      // iade etmez, gosterilen sayi uygulanan sayiyla ayni olmali.
+      where: { userId, createdAt: { gte: currentMonthStartUtc() } },
+    });
+
     return {
       kvkkConsentAt: user.kvkkConsentAt,
       hasPassword: credential !== null,
+      plan,
+      interviewsUsed,
+      interviewsLimit: monthlyQuotaFor(plan),
       // CV METNI BURADA DONMEZ, yalnizca "var mi + hangi dosyadan + ne zaman".
       // Metin yalnizca sunucuda, soru uretimi promptunda kullanilir; istemciye
       // geri gondermek icin bir sebep yok (veri asgarisi, Ilke V).
