@@ -92,6 +92,21 @@ export function invoicePaidEvent(customerId: string): Record<string, unknown> {
 }
 
 /**
+ * `customer.subscription.updated` olayinin testte kullanilan asgari govdesi.
+ * Kademe degisimi (pro <-> pro_plus) bu olayla gelir.
+ */
+export function subscriptionUpdatedEvent(
+  customerId: string,
+): Record<string, unknown> {
+  return {
+    id: `evt_${Math.random().toString(36).slice(2)}`,
+    object: 'event',
+    type: 'customer.subscription.updated',
+    data: { object: { object: 'subscription', customer: customerId } },
+  };
+}
+
+/**
  * `subscriptions.list` yanitinin testte kullanilan asgari sekli.
  *
  * DIKKAT: `current_period_end` SubscriptionItem uzerindedir, Subscription
